@@ -1,19 +1,23 @@
-% --- Project / implementation artifacts (OK as @misc) ---
+% Project and implementation artifacts
 @misc{llamastack,
+  author       = {{Llama Stack Contributors}},
   title        = {Llama Stack},
+  year         = {2025},
   howpublished = {GitHub repository},
   url          = {https://github.com/llamastack/},
   note         = {Accessed: 2026-01-28}
 }
 
-@misc{llamastackk8soperator_2026,
+@misc{llamastackk8soperator,
+  author       = {{Llama Stack Contributors}},
   title        = {Llama Stack Kubernetes Operator},
+  year         = {2025},
   howpublished = {GitHub repository},
   url          = {https://github.com/llamastack/llama-stack-k8s-operator},
   note         = {Accessed: 2026-01-28}
 }
 
-% --- Production ML / ML systems engineering (highly relevant) ---
+% Production ML and ML systems engineering
 @inproceedings{sculley2015hiddentechnicaldebt,
   author    = {Sculley, D. and Holt, Gary and Golovin, Daniel and Davydov, Eugene and Phillips, Todd and Ebner, Dietmar and Chaudhary, Vinay and Young, Michael and Crespo, Jean-Fran{\c{c}}ois and Dennison, Dan},
   title     = {Hidden Technical Debt in Machine Learning Systems},
@@ -33,7 +37,7 @@
   url       = {https://www.microsoft.com/en-us/research/publication/software-engineering-for-machine-learning-a-case-study/}
 }
 
-% --- Retrieval / RAG foundations ---
+% Retrieval and RAG foundations
 @inproceedings{lewis2020rag,
   author    = {Lewis, Patrick and Perez, Ethan and Piktus, Aleksandra and Petroni, Fabio and Karpukhin, Vladimir and Goyal, Naman and K{\"u}ttler, Heinrich and Lewis, Mike and Yih, Wen{-}tau and Rockt{\"a}schel, Tim and Riedel, Sebastian and Kiela, Douwe},
   title     = {Retrieval-Augmented Generation for Knowledge-Intensive {NLP} Tasks},
@@ -60,7 +64,7 @@
   url       = {https://arxiv.org/abs/2002.08909}
 }
 
-% --- Vector search / ANN indexing (useful when you discuss similarity search limits) ---
+% Vector search and ANN indexing
 @article{johnson2017faiss,
   author  = {Johnson, Jeff and Douze, Matthijs and J{\'e}gou, Herv{\'e}},
   title   = {Billion-Scale Similarity Search with {GPUs}},
@@ -69,7 +73,7 @@
   url     = {https://arxiv.org/abs/1702.08734}
 }
 
-% --- Agentic / tool-using LLMs ---
+% Agentic and tool-using LLMs
 @inproceedings{yao2023react,
   author    = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
   title     = {{ReAct}: Synergizing Reasoning and Acting in Language Models},
@@ -86,7 +90,6 @@
   url       = {https://arxiv.org/abs/2302.04761}
 }
 
-% Optional but often useful in a “tool-using agents” related work subsection:
 @article{karpas2022mrkl,
   author  = {Karpas, Ehud and Abend, Omri and Belinkov, Yonatan and Lenz, Barak and Lieber, Opher and Ratner, Nir and Shoham, Yoav and Bata, Hofit and Levine, Yoav and Leyton{-}Brown, Kevin and Muhlgay, Dor and Rozen, Noam and Schwartz, Erez and Shachaf, Gal and Shalev{-}Shwartz, Shai and Shashua, Amnon and Tenenholtz, Moshe},
   title   = {{MRKL} Systems: A Modular, Neuro-Symbolic Architecture that Combines Large Language Models, External Knowledge Sources and Discrete Reasoning},
@@ -95,7 +98,7 @@
   url     = {https://arxiv.org/abs/2205.00445}
 }
 
-% --- LLM serving / shared infrastructure (very relevant to “shared inference” claims) ---
+% LLM serving and shared infrastructure
 @inproceedings{yu2022orca,
   author    = {Yu, Gyeong{-}In and Jeong, Joo Seong and Kim, Geon{-}Woo and Kim, Soojeong and Chun, Byung{-}Gon},
   title     = {Orca: A Distributed Serving System for Transformer-Based Generative Models},
@@ -115,7 +118,7 @@
   url       = {https://arxiv.org/abs/2309.06180}
 }
 
-% --- Benchmarks (useful if you justify retrieval/embeddings evaluation) ---
+% Benchmarks
 @inproceedings{petroni2021kilt,
   author    = {Petroni, Fabio and Piktus, Aleksandra and Fan, Angela and Lewis, Patrick and Yazdani, Majid and {De Cao}, Nicola and Thorne, James and Jernite, Yacine and Karpukhin, Vladimir and Maillard, Jean and others},
   title     = {{KILT}: a Benchmark for Knowledge Intensive Language Tasks},
@@ -140,7 +143,7 @@
   url     = {https://arxiv.org/abs/2210.07316}
 }
 
-% --- Citation-aware generation (optional, if you discuss evidence admission / citations) ---
+% Citation-aware generation
 @inproceedings{gao2023alce,
   author    = {Gao, Tianyu and Yen, Howard and Yu, Jiatong and Chen, Danqi},
   title     = {Enabling Large Language Models to Generate Text with Citations},
@@ -149,7 +152,7 @@
   url       = {https://arxiv.org/abs/2305.14627}
 }
 
-% --- Agent evaluation / real-world tasks (optional) ---
+% Agent evaluation
 @inproceedings{jimenez2024swebench,
   author    = {Jimenez, Carlos E. and Yang, John and Wettig, Alexander and Yao, Shunyu and Pei, Kexin and Press, Ofir and Narasimhan, Karthik},
   title     = {{SWE}-bench: Can Language Models Resolve Real-World {GitHub} Issues?},
@@ -158,7 +161,7 @@
   url       = {https://arxiv.org/abs/2310.06770}
 }
 
-% --- Kubernetes / shared cluster substrate (useful if you motivate k8s operator + multitenancy) ---
+% Kubernetes and shared cluster substrate
 @article{burns2016borg,
   author  = {Burns, Brendan and Grant, Brian and Oppenheimer, David and Brewer, Eric and Wilkes, John},
   title   = {Borg, Omega, and Kubernetes},
@@ -167,10 +170,11 @@
   url     = {https://cacm.acm.org/practice/borg-omega-and-kubernetes/}
 }
 
-% --- API paradigm reference (cite as documentation/spec) ---
+% API paradigm reference
 @misc{openaiResponsesAPI,
   author       = {{OpenAI}},
   title        = {Responses {API} Reference},
+  year         = {2025},
   howpublished = {Online documentation},
   url          = {https://platform.openai.com/docs/api-reference/responses},
   note         = {Accessed: 2026-02-16}
