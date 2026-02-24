@@ -93,7 +93,7 @@ Autonomous agents require flexible tool access and multi-turn reasoning capabili
 Standard agentic AI deployments exhibit security assumptions incompatible with enterprise multitenancy:
 \begin{enumerate}
   \item \textbf{Client-side orchestration:} the application manages the inference--tool--inference loop, distributing security-critical logic to potentially untrusted clients and increasing operational complexity~\cite{amershi2019se4ml}.
-  \item \textbf{Homogeneous data access:} retrieval stacks assume uniform access to a corpus; dense retrieval methods (e.g., DPR) optimize similarity ranking rather than authorization~\cite{karpukhin2020dpr}.
+  \item \textbf{Homogeneous data access:} retrieval stacks assume uniform access to a corpus; retrieval methods (whether dense, sparse, or hybrid) optimize relevance ranking rather than authorization~\cite{karpukhin2020dpr}.
   \item \textbf{Implicit trust boundaries:} tool execution is often treated as a capability extension without systematic verification of who may invoke tools or consume tool outputs, despite the centrality of tool use in modern agent designs~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
   \item \textbf{Stateless isolation:} requests are treated independently, ignoring how conversation state and cached tool results can leak across boundaries; such hidden couplings are a classic source of ML systems fragility~\cite{sculley2015hiddentechnicaldebt}.
 \end{enumerate}
@@ -106,7 +106,7 @@ Conversation history may accumulate context that crosses security boundaries.
 \subsection{Contributions}
 This paper makes the following contributions:
 \begin{enumerate}
-  \item We formalize the problem of \emph{multitenant enterprise RAG} under shared infrastructure, showing why semantic similarity alone (as used by dense retrievers and ANN indexes) is insufficient to enforce isolation and authorization~\cite{karpukhin2020dpr,johnson2017faiss}.
+  \item We formalize the problem of \emph{multitenant enterprise RAG} under shared infrastructure, showing why relevance ranking alone (whether vector-based, keyword-based, or hybrid) is insufficient to enforce isolation and authorization without explicit authorization predicates~\cite{karpukhin2020dpr,johnson2017faiss}.
 
   \item We analyze failure modes of existing RAG and agentic systems in multitenant settings, including cross-tenant retrieval leakage, unauthorized context construction, and policy violations arising from client-side orchestration.
 
@@ -128,7 +128,7 @@ LLM application architectures have evolved through distinct phases, each introdu
 
 \textbf{Retrieval-augmented generation (RAG)}~\cite{lewis2020rag} introduced retrieval and new attack surfaces such as retrieval manipulation and context poisoning, building on foundational work on prompt injection vulnerabilities~\cite{willison2022prompt}.
 \textbf{Dense retrieval and learned retrievers} (e.g., DPR~\cite{karpukhin2020dpr} and retrieval-augmented pretraining such as REALM~\cite{guu2020realm}) established the core technical basis for modern RAG.
-\textbf{Vector search infrastructure} (e.g., FAISS~\cite{johnson2017faiss}) enabled ANN retrieval at scale.
+\textbf{Retrieval infrastructure} evolved to support multiple search modalities: dense vector search across diverse vector databases (FAISS~\cite{johnson2017faiss}, Elasticsearch, Qdrant, Weaviate, ChromaDB, PGVector, Milvus), sparse keyword matching (BM25), and hybrid approaches combining both with neural rerankers~\cite{blendedrag2024}. Advanced chunking strategies including contextual enrichment~\cite{contextualchunking2024} enhanced document segmentation for improved retrieval coherence.
 \textbf{Tool-using agents}~\cite{yao2023react,schick2023toolformer,karpas2022mrkl} extended LLMs with tool calls and an inference\,$\rightarrow$\,tool\,$\rightarrow$\,inference loop.
 \textbf{Autonomous multi-step agents} execute multi-tool workflows with limited human oversight.
 In multitenant deployments, isolation must span retrieval, tool invocation, state accumulation, and orchestration.
@@ -143,7 +143,7 @@ Key threats include cross-tenant data leakage via retrieval, tool-mediated discl
 
 \subsection{Core failure modes}
 
-\textbf{Similarity-authorization gap:} RAG frameworks retrieve by semantic similarity~\cite{karpukhin2020dpr,johnson2017faiss}, not authorization. For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, similarity-based retrieval cannot enforce tenant isolation without an authorization predicate: $\mathcal{R}(q,u) = \{ d \in D : \mathrm{sim}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}$.
+\textbf{Relevance-authorization gap:} Retrieval systems—whether vector-based, keyword-based, or hybrid—optimize for relevance metrics rather than authorization policies. This creates a fundamental gap: search ranking considers semantic similarity, term frequency, or combined relevance signals, but authorization decisions depend on access control policies that are orthogonal to these relevance measures. For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, retrieval methods cannot enforce tenant isolation without an authorization predicate: $\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}$.
 
 \textbf{Tool-mediated disclosure:} Agents invoke tools with agent credentials rather than end-user authorization, potentially accessing unauthorized data across tenant boundaries.
 
@@ -174,14 +174,14 @@ Define an ingestion function $\mathcal{I}(d, t) \rightarrow D_t$ that tags docum
 In Llama Stack, when files are attached to vector stores, the \texttt{attributes} parameter carries tenant ownership, classification, and access policy; these are stored as chunk metadata.
 
 \subsection{Retrieval gating (Layer 2)}
-Retrieval is gated in two tiers.
-\textbf{(1) Resource-level ABAC:} before any search, the system checks that the user is authorized to read the vector store; if not, no search is performed.
+Retrieval is gated in two tiers across multiple search modalities.
+\textbf{(1) Resource-level ABAC:} before any search, the system checks that the user is authorized to read the search store; if not, no search is performed.
 \textbf{(2) Chunk-level metadata filtering:} after retrieval, structured filters are applied on chunk metadata so that only documents satisfying the policy are admitted.
-This composes similarity search (dense retrieval~\cite{karpukhin2020dpr} over ANN indexes~\cite{johnson2017faiss}) with a mandatory authorization predicate:
+LlamaStack supports vector search, keyword search (BM25), and hybrid approaches that combine both with optional reranking. Regardless of search methodology, authorization is applied consistently: each retrieval path first filters the document corpus by tenant and resource-level policies before applying relevance ranking, ensuring that all search modalities respect the same isolation boundaries. This composes retrieval methods (whether dense~\cite{karpukhin2020dpr}, sparse, or hybrid) with a mandatory authorization predicate:
 \[
-\mathcal{R}(q,u) = \{ d \in D : \mathrm{sim}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}.
+\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}.
 \]
-Backends such as Elasticsearch and SQL-backed vector stores can support predicate pushdown for efficiency on large corpora; otherwise, post-retrieval gating still enforces the semantic/authorization separation.
+Backends such as Elasticsearch, PGVector, and other SQL-backed vector databases can support predicate pushdown for efficiency on large corpora; otherwise, post-retrieval gating still enforces the relevance/authorization separation across all provider types.
 
 \subsection{Shared inference (Layer 3)}
 The LLM inference layer is shared across tenants; the model itself does not require per-tenant isolation, only the context fed to it.
@@ -372,10 +372,10 @@ Documents without required metadata are rejected.
 
 \subsection{Shared vector store with logical isolation}
 A single physical vector index is shared, but each chunk carries tenant and policy metadata.
-Retrieval uses query-time predicates (tenant predicates and classification filters) to prevent cross-tenant candidate leakage, separating similarity ranking from authorization checks~\cite{karpukhin2020dpr,johnson2017faiss}.
+Retrieval uses query-time predicates (tenant predicates and classification filters) to prevent cross-tenant candidate leakage, separating relevance ranking from authorization checks across all supported vector database providers~\cite{karpukhin2020dpr,johnson2017faiss}.
 
 \subsection{Two-phase retrieval: search and admission}
-Phase~1 performs filtered similarity search, grounded in dense retrieval and ANN indexing methods~\cite{karpukhin2020dpr,johnson2017faiss}.
+Phase~1 performs retrieval with authorization gating across multiple search modalities. LlamaStack supports vector search, keyword search (BM25), and hybrid approaches that combine both with optional reranking~\cite{karpukhin2020dpr,johnson2017faiss}.
 Phase~2 applies policy-based admission; only admitted documents enter the generation context, and denials are logged.
 
 \subsection{Tool execution with policy gating}
@@ -397,10 +397,10 @@ Internally, the implementation converts request input to chat messages and runs 
 Results are persisted through a responses store backed by an authorized SQL layer so that rows are tagged with owner and access attributes and filtered on read by the default ABAC policy.
 Streaming events expose reasoning, tool calls, and text deltas, giving operators and auditors fine-grained visibility into agent behavior without requiring client-side instrumentation.
 
-\subsection{Vector store abstraction and filters}
-Llama Stack defines a vector store protocol (vector I/O API) implemented by multiple providers (e.g., Chroma, pgvector, Elasticsearch, in-process SQLite).
-Each vector store is a logical resource registered in a routing table and subject to the same access control as other resources; creation assigns an owner from the authenticated user.
-The protocol supports a structured filter language for query-time metadata constraints: comparison operators (\texttt{eq}, \texttt{ne}, \texttt{gt}, \texttt{gte}, \texttt{lt}, \texttt{lte}) and compound \texttt{and}/\texttt{or} filters.
+\subsection{Search abstraction and filters}
+Llama Stack defines a search abstraction layer that provides uniform access to multiple retrieval modalities: vector databases (ChromaDB, PGVector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, sqlite-vec), keyword search engines, and hybrid pipelines with optional reranking. Advanced chunking strategies (including contextual enrichment) are supported at ingestion time.
+Each search store is a logical resource registered in a routing table and subject to the same access control as other resources; creation assigns an owner from the authenticated user.
+The abstraction supports structured filtering through metadata predicates applied consistently across all search approaches: comparison operators (\texttt{eq}, \texttt{ne}, \texttt{gt}, \texttt{gte}, \texttt{lt}, \texttt{lte}) and compound \texttt{and}/\texttt{or} filters.
 When the agent uses \texttt{file\_search}, the server applies the user's tenant and policy attributes so that retrieval is gated by both resource-level and chunk-level checks, enabling metadata-driven isolation without requiring a separate physical index per tenant.
 
 \subsection{Attribute-based access control}
@@ -420,7 +420,7 @@ The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deplo
   \item \textbf{Hybrid approaches}: High-security tenants receive dedicated instances while lower-sensitivity tenants share infrastructure
 \end{itemize}
 
-The operator's provider abstraction enables deployment of heterogeneous inference backends (vLLM~\cite{kwon2023vllm}, Ollama, proprietary endpoints) and vector stores (FAISS~\cite{johnson2017faiss}, ChromaDB, Qdrant) as shared Kubernetes services. Multiple Llama Stack instances reference the same backends, achieving cost savings through infrastructure sharing while maintaining logical isolation through the authorization layer.
+The operator's provider abstraction enables deployment of heterogeneous inference backends (vLLM~\cite{kwon2023vllm}, Ollama, proprietary endpoints) and vector databases (FAISS~\cite{johnson2017faiss}, ChromaDB, PGVector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, sqlite-vec) as shared Kubernetes services. Multiple Llama Stack instances reference the same backends, achieving cost savings through infrastructure sharing while maintaining logical isolation through the authorization layer.
 
 This design scales economically: adding tenants requires only logical configuration (authorization policies, database schemas) rather than full infrastructure duplication, crucial for cost-constrained enterprise deployments.
 
@@ -432,7 +432,7 @@ Performance depends on inference backend efficiency~\cite{kwon2023vllm}. Limitat
 
 \section{Conclusion}
 Agentic AI systems with autonomous tool use and multi-step reasoning introduce security and compliance challenges that exceed the assumptions in standard client-orchestrated patterns.
-We formalized the similarity-authorization gap in agentic retrieval~\cite{karpukhin2020dpr,johnson2017faiss} and analyzed failure modes unique to autonomous agent architectures, including tool-mediated disclosure and client-side orchestration bypass.
+We formalized the relevance-authorization gap in agentic retrieval~\cite{karpukhin2020dpr,johnson2017faiss} and analyzed failure modes unique to autonomous agent architectures, including tool-mediated disclosure and client-side orchestration bypass.
 
 Our layered isolation architecture demonstrates that server-side orchestration can serve as a unifying enforcement layer for secure agent behavior, centralizing retrieval, tool execution, and state management to maintain enterprise control over autonomous actions~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
