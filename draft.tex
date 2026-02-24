@@ -406,116 +406,8 @@ The access control engine evaluates \texttt{Access\-Rule}s with permit/forbid sc
 Authorization is enforced at API routes (e.g., \texttt{Route\-Authorization\-Middleware}), at routing table resolution (e.g., before resolving a vector store or model), and at storage read time via \texttt{Authorized\-Sql\-Store}, which builds SQL \texttt{WHERE} clauses from the current user so that tenants only see their own or attribute-matched rows.
 JWT or Kubernetes auth providers map external claims (e.g., \texttt{tenant}, \texttt{groups}) into these attributes, so enterprise identity systems can drive isolation without embedding tenant IDs in application logic.
 
-\section{Kubernetes Deployment via the Llama Stack Operator}
-\label{sec:k8s-operator}
-
-The architectural guarantees described in previous sections---layered isolation, server-side orchestration, and attribute-based access control---must ultimately be realized on shared infrastructure.
-Kubernetes has become the de facto substrate for such deployments, building on lessons from cluster managers such as Borg~\cite{burns2016borg}.
-The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} bridges the gap between the logical isolation model of the Llama Stack server and the physical resource management provided by Kubernetes, automating deployment, lifecycle management, and network-level isolation for Llama Stack distributions.
-
-\subsection{Operator overview and reconciliation model}
-The operator follows the standard Kubernetes operator pattern: it extends the Kubernetes API with a custom resource definition (CRD), \texttt{LlamaStackDistribution}, and runs a controller that continuously reconciles the desired state declared in each CR instance with the actual cluster state.
-When a user creates, updates, or deletes a \texttt{LlamaStackDistribution} resource, the operator's reconciliation loop automatically provisions or tears down the corresponding pods, services, persistent volumes, and (optionally) network policies.
-This declarative model ensures that deployments are reproducible and auditable, reducing the configuration drift that is a well-known source of operational risk in production ML systems~\cite{sculley2015hiddentechnicaldebt}.
-
-\subsection{The \texttt{LlamaStackDistribution} custom resource}
-Each \texttt{LlamaStackDistribution} CR captures the full specification of a Llama Stack server deployment.
-Key fields include:
-
-\begin{itemize}
-  \item \textbf{Distribution:} the distribution name (e.g., \texttt{starter}, \texttt{starter-gpu}), which the operator resolves to a container image. Image mapping overrides via a ConfigMap allow independent patching for security fixes or bug fixes without requiring a new operator release.
-  \item \textbf{Replicas and container spec:} replica count and environment variables that configure the server, including pointers to inference backends (e.g., \texttt{OLLAMA\_URL}, \texttt{VLLM\_URL}) and model identifiers.
-  \item \textbf{Storage:} persistent volume size and mount path for model artifacts and server state, ensuring data survives pod restarts.
-  \item \textbf{ConfigMap reference:} an optional reference to a ConfigMap containing the server's \texttt{config.yaml}. Updates to the ConfigMap trigger an automatic pod restart so the running server always reflects the latest configuration.
-\end{itemize}
-
-\noindent
-An example CR deploying a Llama Stack server backed by Ollama:
-\begin{verbatim}
-apiVersion: llamastack.io/v1alpha1
-kind: LlamaStackDistribution
-metadata:
-  name: tenant-a-stack
-spec:
-  replicas: 1
-  server:
-    distribution:
-      name: starter
-    containerSpec:
-      env:
-      - name: OLLAMA_INFERENCE_MODEL
-        value: "llama3.2:1b"
-      - name: OLLAMA_URL
-        value: "http://ollama.svc:11434"
-    storage:
-      size: "20Gi"
-      mountPath: "/home/lls/.lls"
-\end{verbatim}
-
-\subsection{API providers and distribution capabilities}
-Each distribution bundles a set of API providers that map to the Llama Stack API surface described in Section~\ref{sec:ref-arch}.
-Table~\ref{tab:api-providers} summarizes the key API types and their provider implementations.
-The distribution supports both inline providers (executing in-process) and remote providers that adapt external services, enabling hybrid deployments where sensitive data paths remain local while compute-intensive operations are delegated to scalable backends.
-
-\begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\columnwidth}{@{}l|X@{}}
-  \toprule
-  API type & Providers \\
-  \midrule
-  Inference & remote::vllm, remote::ollama, remote::openai, remote::bedrock, remote::watsonx, inline::sentence-transformers \\
-  \midrule
-  Agents & inline::meta-reference \\
-  \midrule
-  VectorIO & inline::milvus, remote::milvus, inline::chromadb, inline::sqlite-vec \\
-  \midrule
-  Safety & remote::trustyai\_fms \\
-  \midrule
-  Tool runtime & inline::rag-runtime, remote::brave-search, remote::tavily-search, remote::model-context-protocol \\
-  \midrule
-  Files & inline::localfs \\
-  \midrule
-  Telemetry & inline::meta-reference \\
-  \bottomrule
-  \end{tabularx}
-  \caption{API types and providers available in a \texttt{LlamaStackDistribution}. Inline providers run in-process; remote providers adapt external services.}
-  \label{tab:api-providers}
-\end{table}
-
-\subsection{OpenAI-compatible API surface}
-The deployed Llama Stack server exposes OpenAI-compatible endpoints under the \texttt{/v1/openai/v1/} path prefix, enabling existing OpenAI SDKs and tooling to target the deployment by changing only the \texttt{base\_url}.
-Supported endpoints include Chat Completions, Completions, Embeddings, Files, Vector Stores, Vector Store Files, Models, and the Responses API.
-This compatibility layer is significant for enterprise adoption: organizations can migrate workloads from proprietary APIs to a self-hosted, policy-enforced deployment without modifying client code, while gaining the multitenancy and isolation guarantees described in this paper.
-
-\subsection{Network-level isolation}
-Beyond the application-layer isolation enforced by Llama Stack's ABAC engine, the operator provides optional Kubernetes \texttt{NetworkPolicy} resources for each distribution instance.
-When enabled via a feature flag in the operator's ConfigMap, ingress traffic to each \texttt{LlamaStackDistribution} pod is restricted by default to:
-\begin{itemize}
-  \item Pods labeled as part of the Llama Stack deployment in the same namespace.
-  \item The operator's own namespace.
-\end{itemize}
-
-\noindent
-Administrators can further customize access through the CR's \texttt{allowedFrom} field, specifying permitted namespaces by name or by label selector, and can optionally expose the service externally via an Ingress resource.
-This defense-in-depth approach layers network-level segmentation on top of application-level ABAC, limiting the blast radius of a compromised component and ensuring that even if an attacker gains access to a pod in one namespace, they cannot reach another tenant's Llama Stack server at the network layer.
-
-\subsection{Deployment topology for multitenancy}
-\label{sec:k8s-multitenant-topology}
-The operator supports multiple deployment topologies depending on organizational requirements:
-
-\begin{itemize}
-  \item \textbf{Shared server, logical isolation:} A single \texttt{Llama\-Stack\-Distribution} serves all tenants, with isolation enforced entirely through ABAC policies and metadata-gated retrieval.
-  This minimizes infrastructure cost and is appropriate when tenants share a trust domain.
-  \item \textbf{Per-tenant distribution instances:} Separate CRs are deployed in tenant-specific namespaces, combining Kubernetes RBAC and namespace isolation with application-level ABAC.
-  Shared model-serving backends (e.g., vLLM) remain in a common namespace, accessible through Kubernetes service networking.
-  \item \textbf{Hybrid:} Some tenants share a distribution while high-security tenants receive dedicated instances, blending cost efficiency with stronger isolation where required.
-\end{itemize}
-
-\noindent
-In all topologies, the operator's reconciliation loop ensures that the declared state is continuously enforced, and standard GitOps workflows (e.g., Argo~CD, Flux) can manage \texttt{LlamaStackDistribution} resources alongside other Kubernetes manifests, providing versioned, reviewable, and auditable infrastructure-as-code for the entire agentic AI deployment.
+\subsection{Cloud-Native Deployment}
+Llama Stack deployments are managed via a Kubernetes operator that automates lifecycle management on shared infrastructure. The operator supports multiple deployment topologies from shared instances with logical isolation to per-tenant deployments with namespace isolation, achieving cost efficiency through shared backends while maintaining security through application-level policy enforcement.
 
 \section{Analysis and Discussion}
 
@@ -530,7 +422,8 @@ We formalized the similarity-authorization gap in agentic retrieval~\cite{karpuk
 Our layered isolation architecture demonstrates that server-side orchestration can serve as a unifying enforcement layer for secure agent behavior, centralizing retrieval, tool execution, and state management to maintain enterprise control over autonomous actions~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
 Llama Stack~\cite{llamastack} demonstrates that vendor-neutral, open-source tooling can enable enterprise-grade agentic multitenancy through provider abstraction and server-side Responses API implementation~\cite{openaiResponsesAPI,openresponses}. Combined with efficient serving infrastructure~\cite{kwon2023vllm} and open models~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete alternative to proprietary agentic platforms.
-The patterns presented---server-side orchestration, policy-aware retrieval, and operator-driven infrastructure---establish a foundation for secure, scalable autonomous agent deployments with systematic behavioral control.
+
+The patterns presented establish a foundation for secure, scalable autonomous agent deployments with systematic behavioral control.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
