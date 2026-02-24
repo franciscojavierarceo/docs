@@ -180,7 +180,7 @@ We propose a three-layer architecture with server-side orchestration:
 \subsection{Server-side orchestration as enforcement layer}
 Server-side orchestration centralizes retrieval, tool execution, and state management within the trust boundary, eliminating client-side bypass risks. This design aligns with tool-using agent formulations~\cite{yao2023react,karpas2022mrkl} while enabling centralized policy enforcement, audit logging, and state isolation.
 
-We propose a three-layer architecture that directly addresses the failure modes identified in Section~\ref{sec:common-limitations}: policy-aware ingestion, retrieval-time gating, and shared inference.
+We propose a three-layer architecture that directly addresses the failure modes identified in Section~\ref{sec:challenges-solutions}: policy-aware ingestion, retrieval-time gating, and shared inference.
 
 \subsection{Policy-aware ingestion (Layer 1)}
 Tenant metadata must be attached at document ingestion time, not retrofitted.
@@ -204,7 +204,7 @@ With $N$ tenants and $M$ model endpoints, cost scales as $O(M)$ rather than $O(N
 \section{Server-Side Orchestration as Enforcement Layer}
 \label{sec:server-side}
 
-Server-side orchestration is essential for multitenant security: it centralizes retrieval, tool execution, and state management, reducing the trusted computing base and addressing failure modes in Section~\ref{sec:common-limitations}.
+Server-side orchestration is essential for multitenant security: it centralizes retrieval, tool execution, and state management, reducing the trusted computing base and addressing failure modes in Section~\ref{sec:challenges-solutions}.
 This design also aligns with the execution structure implied by tool-using agent formulations~\cite{yao2023react,karpas2022mrkl}.
 
 \subsection{The case against client-side orchestration}
@@ -243,7 +243,7 @@ Streaming events expose tool calls and text deltas, improving observability in l
   \end{figure}
 
 \subsection{Enforcement points}
-Table~\ref{tab:enforcement} maps each failure mode from Section~\ref{sec:common-limitations} to the enforcement point that mitigates it.
+Table~\ref{tab:enforcement} maps each failure mode from Section~\ref{sec:challenges-solutions} to the enforcement point that mitigates it.
 \textbf{Server-side orchestration:} Centralizes retrieval, tool execution, and state management within the trust boundary, eliminating client-side bypass risks while enabling policy enforcement and audit logging~\cite{yao2023react,karpas2022mrkl}.
 
 \begin{table}[t]
