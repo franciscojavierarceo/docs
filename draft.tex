@@ -63,9 +63,12 @@ Our open-source implementation using Llama Stack---a vendor-neutral framework re
 
 \section{Introduction}
 \subsection{Motivation}
-Enterprise AI deployment has evolved toward agentic systems---autonomous AI applications that reason, use tools, retrieve information, and execute multi-step workflows to accomplish complex tasks~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}. This represents a fundamental shift from language models as text generators to reasoning engines capable of autonomous action in enterprise environments.
+Enterprise adoption of generative AI has evolved beyond simple prompt-response interactions toward agentic systems---AI applications that autonomously reason, use tools, retrieve information, and execute multi-step workflows to accomplish complex tasks~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
+This evolution reflects a fundamental shift: rather than treating large language models (LLMs) as sophisticated text generators, organizations now deploy them as reasoning engines capable of taking actions in the world.
 
-The Responses API paradigm~\cite{openaiResponsesAPI,openresponses} unifies multi-turn inference, tool use, and retrieval behind a single endpoint, enabling stateful agentic workflows. Open implementations increasingly expose compatible endpoints to decouple applications from proprietary providers, enabling enterprise control over autonomous agent behavior.
+An API-first paradigm for these systems is to unify multi-turn inference, tool use, and retrieval behind a single endpoint.
+OpenAI's Responses API has emerged as a de facto interface pattern for building such systems by providing a unified interface for chat-style inference, tool invocation, retrieval tools, and stateful workflows~\cite{openaiResponsesAPI}.
+In parallel, open implementations increasingly expose OpenAI-compatible endpoints to decouple applications from a specific model provider.
 
 However, real-world enterprise deployments differ sharply from the assumptions embedded in consumer-facing APIs and many academic prototypes.
 Enterprise environments exhibit characteristics that demand specialized architectural consideration:
