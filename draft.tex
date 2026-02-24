@@ -407,7 +407,19 @@ Authorization is enforced at API routes (e.g., \texttt{Route\-Authorization\-Mid
 JWT or Kubernetes auth providers map external claims (e.g., \texttt{tenant}, \texttt{groups}) into these attributes, so enterprise identity systems can drive isolation without embedding tenant IDs in application logic.
 
 \subsection{Cloud-Native Deployment}
-Llama Stack deployments are managed via a Kubernetes operator that automates lifecycle management on shared infrastructure. The operator supports multiple deployment topologies from shared instances with logical isolation to per-tenant deployments with namespace isolation, achieving cost efficiency through shared backends while maintaining security through application-level policy enforcement.
+The architectural guarantees described above must be realized on shared infrastructure. Kubernetes has become the de facto substrate for enterprise deployments~\cite{burns2016borg}.
+
+The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deployment and lifecycle management through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports multiple deployment topologies:
+
+\begin{itemize}
+  \item \textbf{Shared instances}: Single deployment serving multiple tenants with application-level ABAC isolation
+  \item \textbf{Per-tenant instances}: Separate deployments in tenant-specific namespaces combining Kubernetes RBAC with application-level policies
+  \item \textbf{Hybrid approaches}: High-security tenants receive dedicated instances while lower-sensitivity tenants share infrastructure
+\end{itemize}
+
+The operator's provider abstraction enables deployment of heterogeneous inference backends (vLLM~\cite{kwon2023vllm}, Ollama, proprietary endpoints) and vector stores (FAISS~\cite{johnson2017faiss}, ChromaDB, Qdrant) as shared Kubernetes services. Multiple Llama Stack instances reference the same backends, achieving cost savings through infrastructure sharing while maintaining logical isolation through the authorization layer.
+
+This design scales economically: adding tenants requires only logical configuration (authorization policies, database schemas) rather than full infrastructure duplication, crucial for cost-constrained enterprise deployments.
 
 \section{Analysis and Discussion}
 
