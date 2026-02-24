@@ -4,11 +4,11 @@
 % \settopmatter{printacmref=false} % Removes ACM Reference Format
 % \renewcommand\footnotetextcopyrightpermission[1]{} % removes copyright text
 
+\usepackage{lmodern}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
 \usepackage{tabularx}
 \usepackage{booktabs}
-\usepackage{url}
 \usepackage{url}
 
 %\title{Towards Secure, Multitenant, Vendor-Neutral Enterprise RAG on Shared Infrastructure}
@@ -35,7 +35,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: dense retrieval ranks documents by semantic similarity, not by authorization---so a query from one tenant can surface another tenant's confidential data simply because it is the nearest neighbor. We formalize this gap and analyze additional failure modes---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. Unlike client-side agent patterns, this approach centralizes tool execution, state management, and policy enforcement on the server, creating natural enforcement points for multitenant isolation and eliminating per-tenant infrastructure duplication.
 
-An open-source, vendor-neutral implementation using Llama Stack---which realizes the Responses API paradigm with server-side multi-turn orchestration---and its Kubernetes Operator demonstrates that secure multitenancy, cost-efficient resource sharing, and the flexibility of modern agentic systems are simultaneously achievable on shared cluster infrastructure.
+An open-source implementation using Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---and its Kubernetes Operator demonstrates that secure multitenancy, cost-efficient sharing, and the flexibility of modern agentic systems are simultaneously achievable on shared infrastructure.
 \end{abstract}
 
 % TODO: update ACM classification.
@@ -110,7 +110,7 @@ This paper makes the following contributions:
 
   \item We analyze failure modes of existing RAG and agentic systems in multitenant settings, including cross-tenant retrieval leakage, unauthorized context construction, and policy violations arising from client-side orchestration.
 
-  \item We propose a layered isolation architecture for distributed-scale enterprise RAG that combines policy-aware ingestion, retrieval-time gating, and shared inference to achieve strict tenant isolation without per-tenant duplication of storage or models.
+  \item We propose a layered isolation architecture for enterprise RAG that combines policy-aware ingestion, retrieval-time gating, and shared inference to achieve strict tenant isolation without per-tenant duplication of storage or models.
 
   \item We introduce server-side orchestration as a unifying enforcement layer that centralizes retrieval, tool execution, and state management, reducing the trusted computing base for secure multitenant RAG and aligning with production ML engineering best practices~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
@@ -118,13 +118,14 @@ This paper makes the following contributions:
 \end{enumerate}
 
 \paragraph{Primary sources.}
-Llama Stack repository: \url{https://github.com/llamastack/}~\cite{llamastack}.\\
-Kubernetes operator repository: \url{https://github.com/llamastack/llama-stack-k8s-operator}~\cite{llamastackk8soperator}.
+Llama Stack~\cite{llamastack}: \url{https://github.com/llamastack/}.\\
+Kubernetes operator~\cite{llamastackk8soperator}: \url{https://github.com/llamastack/llama-stack-k8s-operator}.
 
 \section{Background and Related Work}
 \subsection{The evolution of LLM application architectures}
 LLM application architectures have evolved through distinct phases, each introducing new capabilities and security considerations.
 \textbf{Completion APIs} exposed simple prompt\,$\rightarrow$\,text interfaces with perimeter-oriented security.
+
 \textbf{Retrieval-augmented generation (RAG)}~\cite{lewis2020rag} introduced retrieval and new attack surfaces such as retrieval manipulation and context poisoning.
 \textbf{Dense retrieval and learned retrievers} (e.g., DPR~\cite{karpukhin2020dpr} and retrieval-augmented pretraining such as REALM~\cite{guu2020realm}) established the core technical basis for modern RAG.
 \textbf{Vector search infrastructure} (e.g., FAISS~\cite{johnson2017faiss}) enabled ANN retrieval at scale.
@@ -243,7 +244,7 @@ This problem aligns with the broader call for systematic software engineering pr
 \section{Layered Isolation Architecture}
 \label{sec:layered-arch}
 
-We propose a three-layer architecture that directly addresses the failure modes of Section~\ref{sec:common-limitations}: policy-aware ingestion, retrieval-time gating, and shared inference.
+We propose a three-layer architecture that directly addresses the failure modes identified in Section~\ref{sec:common-limitations}: policy-aware ingestion, retrieval-time gating, and shared inference.
 
 \subsection{Policy-aware ingestion (Layer 1)}
 Tenant metadata must be attached at document ingestion time, not retrofitted.
@@ -359,7 +360,7 @@ Third, Llama Stack implements server-side agentic orchestration. The full agenti
 Finally, the framework introduces a distribution model. Pre-configured combinations of APIs and providers are packaged as distributions, enabling turnkey deployment while preserving flexibility for customization and provider substitution.
 
 \subsection{Layered Architecture}
-Llama Stack follows a layered architecture that separates concerns across distinct tiers, as illustrated in Figure~\ref{fig:llama-stack-architecture}. At the top, an HTTP/REST layer handles request routing, authentication, quota enforcement, and streaming. Beneath this layer, a set of domain-specific APIs expose functionality for inference, agentic execution, vector I/O, safety, and tool integration.
+Llama Stack follows a layered architecture that separates concerns across distinct tiers, as illustrated in Figure~\ref{fig:architecture}. At the top, an HTTP/REST layer handles request routing, authentication, quota enforcement, and streaming. Beneath this layer, a set of domain-specific APIs expose functionality for inference, agentic execution, vector I/O, safety, and tool integration.
 
 A routing layer mediates between API calls and concrete provider implementations, resolving logical resource identifiers (e.g., model identifiers or vector store identifiers) to physical provider instances. Below this, a provider layer encapsulates both inline providers executing in-process and remote providers that adapt external services. Persistent state is maintained in a storage layer comprising key–value stores, relational stores, and vector databases.
 
@@ -475,13 +476,22 @@ Llama Stack is an open-source framework implementing the Responses API paradigm 
 It is vendor-neutral via a provider abstraction, and is designed for Kubernetes-native deployment and operator-based lifecycle management~\cite{llamastackk8soperator,burns2016borg}.
 
 \subsection{Responses API implementation}
-The Responses API exposes operations to create responses (execute an agent), retrieve responses, list responses, inspect input items, and delete responses; creation supports both streaming and non-streaming modes. Internally, \text{OpenAIResponsesImpl} converts request input to chat messages, runs the inference--tool loop via \texttt{StreamingResponseOrchestrator} or a synchronous path, and persists results through \texttt{ResponsesStore}, which uses \texttt{AuthorizedSqlStore} so that rows are tagged with \texttt{owner\_principal} and \texttt{access\_attributes} and filtered on read by the default ABAC policy. Streaming events expose reasoning, tool calls, and text deltas, giving operators and auditors fine-grained visibility into agent behavior without requiring client-side instrumentation.
+The Responses API exposes operations to create responses (execute an agent), retrieve responses, list responses, inspect input items, and delete responses; creation supports both streaming and non-streaming modes.
+Internally, the implementation converts request input to chat messages and runs the inference--tool loop via a streaming orchestrator or a synchronous path.
+Results are persisted through a responses store backed by an authorized SQL layer so that rows are tagged with owner and access attributes and filtered on read by the default ABAC policy.
+Streaming events expose reasoning, tool calls, and text deltas, giving operators and auditors fine-grained visibility into agent behavior without requiring client-side instrumentation.
 
 \subsection{Vector store abstraction and filters}
-Llama Stack defines a vector store protocol (vector I/O API) implemented by multiple providers (e.g., Chroma, pgvector, Elasticsearch, in-process SQLite). Each vector store is a logical resource registered in a routing table and subject to the same access control as other resources; creation assigns an owner from the authenticated user. The protocol supports a structured filter language for query-time metadata constraints: comparison operators (\texttt{eq}, \texttt{ne}, \texttt{gt}, \texttt{gte}, \texttt{lt}, \texttt{lte}) and compound \texttt{and}/\texttt{or} filters. When the agent uses \texttt{file\_search}, the server applies the user's tenant and policy attributes so that retrieval is gated by both resource-level (can this user read this vector store?) and chunk-level (does this chunk's metadata match the policy?) checks, enabling metadata-driven isolation without requiring a separate physical index per tenant.
+Llama Stack defines a vector store protocol (vector I/O API) implemented by multiple providers (e.g., Chroma, pgvector, Elasticsearch, in-process SQLite).
+Each vector store is a logical resource registered in a routing table and subject to the same access control as other resources; creation assigns an owner from the authenticated user.
+The protocol supports a structured filter language for query-time metadata constraints: comparison operators (\texttt{eq}, \texttt{ne}, \texttt{gt}, \texttt{gte}, \texttt{lt}, \texttt{lte}) and compound \texttt{and}/\texttt{or} filters.
+When the agent uses \texttt{file\_search}, the server applies the user's tenant and policy attributes so that retrieval is gated by both resource-level and chunk-level checks, enabling metadata-driven isolation without requiring a separate physical index per tenant.
 
 \subsection{Attribute-based access control}
-Llama Stack supports ABAC-style policies for tenant isolation, role-based capabilities, and classification enforcement. The access control engine evaluates \texttt{AccessRule}s with permit/forbid scopes and optional conditions (e.g., \texttt{user in owners roles}, \texttt{user is owner}, \texttt{resource is unowned}); the default policy permits access when the user is the resource owner or when the user's attributes (roles, teams, projects, namespaces) match the resource's \texttt{access\_attributes}. Authorization is enforced at API routes (e.g., \texttt{RouteAuthorizationMiddleware}), at routing table resolution (e.g., before resolving a vector store or model), and at storage read time via \texttt{AuthorizedSqlStore}, which builds SQL \texttt{WHERE} clauses from the current user so that tenants only see their own or attribute-matched rows. JWT or Kubernetes auth providers map external claims (e.g., \texttt{tenant}, \texttt{groups}) into these attributes, so enterprise identity systems can drive isolation without embedding tenant IDs in application logic.
+Llama Stack supports ABAC-style policies for tenant isolation, role-based capabilities, and classification enforcement.
+The access control engine evaluates \texttt{Access\-Rule}s with permit/forbid scopes and optional conditions (e.g., ``user in owners roles'', ``user is owner'', ``resource is unowned''); the default policy permits access when the user is the resource owner or when the user's attributes (roles, teams, projects, namespaces) match the resource's access attributes.
+Authorization is enforced at API routes (e.g., \texttt{Route\-Authorization\-Middleware}), at routing table resolution (e.g., before resolving a vector store or model), and at storage read time via \texttt{Authorized\-Sql\-Store}, which builds SQL \texttt{WHERE} clauses from the current user so that tenants only see their own or attribute-matched rows.
+JWT or Kubernetes auth providers map external claims (e.g., \texttt{tenant}, \texttt{groups}) into these attributes, so enterprise identity systems can drive isolation without embedding tenant IDs in application logic.
 
 \section{Kubernetes Deployment via the Llama Stack Operator}
 \label{sec:k8s-operator}
@@ -530,9 +540,9 @@ spec:
 \end{verbatim}
 
 \subsection{API providers and distribution capabilities}
-Each \texttt{LlamaStackDistribution} bundles a set of API providers that map to the Llama Stack API surface described in Section~\ref{sec:ref-arch}.
+Each distribution bundles a set of API providers that map to the Llama Stack API surface described in Section~\ref{sec:ref-arch}.
 Table~\ref{tab:api-providers} summarizes the key API types and their provider implementations.
-The distribution supports both inline providers (executing in-process) and remote providers that adapt external services, enabling hybrid deployments where sensitive data paths remain local while compute-intensive inference is delegated to scalable backends.
+The distribution supports both inline providers (executing in-process) and remote providers that adapt external services, enabling hybrid deployments where sensitive data paths remain local while compute-intensive operations are delegated to scalable backends.
 
 \begin{table}[t]
   \centering
@@ -571,12 +581,12 @@ This compatibility layer is significant for enterprise adoption: organizations c
 Beyond the application-layer isolation enforced by Llama Stack's ABAC engine, the operator provides optional Kubernetes \texttt{NetworkPolicy} resources for each distribution instance.
 When enabled via a feature flag in the operator's ConfigMap, ingress traffic to each \texttt{LlamaStackDistribution} pod is restricted by default to:
 \begin{itemize}
-  \item Pods with label \texttt{app.kubernetes.io/part-of: llama-stack} in the same namespace.
-  \item The operator namespace (\texttt{llama-stack-k8s-operator-system}).
+  \item Pods labeled as part of the Llama Stack deployment in the same namespace.
+  \item The operator's own namespace.
 \end{itemize}
 
 \noindent
-Administrators can further customize access through the \texttt{spec.network.allowedFrom} field, specifying permitted namespaces by name or by label selector, and can optionally expose the service externally via an Ingress resource (\texttt{spec.network.exposeRoute}).
+Administrators can further customize access through the CR's \texttt{allowedFrom} field, specifying permitted namespaces by name or by label selector, and can optionally expose the service externally via an Ingress resource.
 This defense-in-depth approach layers network-level segmentation on top of application-level ABAC, limiting the blast radius of a compromised component and ensuring that even if an attacker gains access to a pod in one namespace, they cannot reach another tenant's Llama Stack server at the network layer.
 
 \subsection{Deployment topology for multitenancy}
@@ -584,8 +594,10 @@ This defense-in-depth approach layers network-level segmentation on top of appli
 The operator supports multiple deployment topologies depending on organizational requirements:
 
 \begin{itemize}
-  \item \textbf{Shared server, logical isolation:} A single \texttt{LlamaStackDistribution} serves all tenants, with isolation enforced entirely through ABAC policies and metadata-gated retrieval. This minimizes infrastructure cost and is appropriate when tenants share a trust domain.
-  \item \textbf{Per-tenant distribution instances:} Separate \texttt{LlamaStackDistribution} CRs are deployed in tenant-specific namespaces, combining Kubernetes RBAC and namespace isolation with application-level ABAC. Shared model-serving backends (e.g., vLLM) remain in a common namespace, accessible through Kubernetes service networking.
+  \item \textbf{Shared server, logical isolation:} A single \texttt{Llama\-Stack\-Distribution} serves all tenants, with isolation enforced entirely through ABAC policies and metadata-gated retrieval.
+  This minimizes infrastructure cost and is appropriate when tenants share a trust domain.
+  \item \textbf{Per-tenant distribution instances:} Separate CRs are deployed in tenant-specific namespaces, combining Kubernetes RBAC and namespace isolation with application-level ABAC.
+  Shared model-serving backends (e.g., vLLM) remain in a common namespace, accessible through Kubernetes service networking.
   \item \textbf{Hybrid:} Some tenants share a distribution while high-security tenants receive dedicated instances, blending cost efficiency with stronger isolation where required.
 \end{itemize}
 
@@ -628,4 +640,3 @@ The patterns presented here---server-side orchestration, policy-aware retrieval 
 \bibliography{references}
 
 \end{document}
-
