@@ -31,7 +31,9 @@
 \begin{abstract}
 Agentic AI systems that autonomously reason, use tools, and execute multi-step workflows are transforming enterprise AI deployment. However, enterprise environments introduce challenges absent from single-tenant academic treatments: multiple tenants with heterogeneous data, strict access controls, regulatory compliance, and cost pressures demanding shared infrastructure.
 
-A fundamental security gap underlies existing agentic architectures: dense retrieval ranks documents by semantic similarity, not authorization---enabling cross-tenant data leakage when agents retrieve similar but unauthorized content. We formalize this similarity-authorization gap and analyze additional failure modes unique to agentic systems: tool-mediated disclosure where agents access unauthorized data through tool invocation, context accumulation across conversation turns, and client-side orchestration bypass. We introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration that centralizes tool execution, state management, and policy enforcement, creating natural enforcement points for secure agent behavior.
+A fundamental security gap underlies existing agentic architectures: dense retrieval ranks documents by semantic similarity, not authorization---enabling cross-tenant data leakage when agents retrieve similar but unauthorized content.
+We formalize this similarity-authorization gap and analyze additional failure modes unique to agentic systems: tool-mediated disclosure where agents access unauthorized data through tool invocation, context accumulation across conversation turns, and client-side orchestration bypass.
+We introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration that centralizes tool execution, state management, and policy enforcement, creating natural enforcement points for secure agent behavior.
 
 Our open-source implementation using Llama Stack demonstrates that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure, enabling enterprise deployment of agentic AI with systematic behavioral control.
 \end{abstract>
@@ -379,7 +381,7 @@ This is particularly important for agent loops where the model chooses actions a
 
 \subsection{Shared inference with isolated contexts}
 LLM instances are shared across tenants, but each request constructs an isolated context containing only authorized inputs.
-Serving efficiency and scheduling are handled by the inference backend; modern LLM serving systems show that batching and memory management dominate throughput~\cite{yu2022orca,kwon2023vllm}.
+Serving efficiency and scheduling are handled by the inference backend; modern LLM serving systems show that batching and memory management dominate throughput~\cite{yu2022orca,kwon2023vllm}. Recent work demonstrates that smaller, specialized models can achieve competitive agentic performance while offering significant deployment advantages in enterprise contexts~\cite{chen2025small}.
 Because isolation is enforced at ingestion and retrieval, the inference layer itself does not need per-tenant replicas—reducing cost to $O(M)$ model endpoints for $N$ tenants while preserving strict logical isolation.
 
 \subsection{Overview and implementation}
