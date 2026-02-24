@@ -1,5 +1,4 @@
 \documentclass[sigconf]{acmart}
-
 % Remove/adjust for your submission venue as needed.
 % \settopmatter{printacmref=false} % Removes ACM Reference Format
 % \renewcommand\footnotetextcopyrightpermission[1]{} % removes copyright text
@@ -10,6 +9,7 @@
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
+
 
 %\title{Towards Secure, Multitenant, Vendor-Neutral Enterprise RAG on Shared Infrastructure}
 \title{Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
@@ -57,6 +57,9 @@ Our open-source implementation using Llama Stack---a vendor-neutral framework re
 \ccsdesc[100]{Information systems~Data management systems}
 
 \keywords{Llama Stack, Kubernetes operator, LLM systems, MLOps, LLMOps}
+
+
+\DeclareMathOperator{\relevance}{relevance}
 
 \begin{document}
 \maketitle
@@ -147,14 +150,14 @@ where the final step has no tool call ($\emptyset$) and terminates with response
 
 Key threats include cross-tenant data leakage via retrieval, tool-mediated disclosure, context accumulation attacks, and client-side orchestration bypass. Standard agentic deployments exhibit fundamental incompatibilities with enterprise multitenancy.
 
-\subsection{Core failure modes}
+\subsection{Key security challenges}
 
 \textbf{Relevance-authorization gap:} Retrieval systems—whether vector-based, keyword-based, or hybrid—optimize for relevance metrics rather than authorization policies. This creates a fundamental gap: search ranking considers semantic similarity, term frequency, or combined relevance signals, but authorization decisions depend on access control policies that are orthogonal to these relevance measures.
 
 For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, retrieval methods cannot enforce tenant isolation without an authorization predicate. Let $q$ denote a query, $u$ denote a user, $d$ denote a document, $\theta$ denote a relevance threshold, and $P(u,d)$ denote an authorization policy that returns $\mathrm{permit}$ or $\mathrm{deny}$. Then secure retrieval requires:
 
 \begin{equation}
-\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}
+\{ d \in D : \operatorname{relevance}\bigl(q,d\bigr) > \theta \wedge P\bigl(u,d\bigr) = \mathrm{permit} \}
 \end{equation}
 
 \textbf{Tool-mediated disclosure:} Agents invoke tools with agent credentials rather than end-user authorization, potentially accessing unauthorized data across tenant boundaries.
