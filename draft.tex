@@ -137,13 +137,25 @@ Agentic AI systems evolved from prompt-response APIs to autonomous reasoning eng
 \section{Multitenant Agentic AI: Challenges and Solutions}
 \label{sec:challenges-solutions}
 
-We formalize the multitenant agentic AI environment: tenants ($T$) share infrastructure, each with associated data, users, tools, and policies. Agent execution follows the tool-using pattern~\cite{yao2023react,karpas2022mrkl}: $E = [(i_1, \phi_1, r_1), (i_2, \phi_2, r_2), \dots, (i_n, \emptyset, r_n)]$.
+We formalize the multitenant agentic AI environment: tenants ($T$) share infrastructure, each with associated data, users, tools, and policies. Agent execution follows the tool-using pattern~\cite{yao2023react,karpas2022mrkl}, where an execution sequence $E$ consists of alternating inference steps $i$, tool calls $\phi$, and responses $r$:
+
+\begin{equation}
+E = [(i_1, \phi_1, r_1), (i_2, \phi_2, r_2), \dots, (i_n, \emptyset, r_n)]
+\end{equation}
+
+where the final step has no tool call ($\emptyset$) and terminates with response $r_n$.
 
 Key threats include cross-tenant data leakage via retrieval, tool-mediated disclosure, context accumulation attacks, and client-side orchestration bypass. Standard agentic deployments exhibit fundamental incompatibilities with enterprise multitenancy.
 
 \subsection{Core failure modes}
 
-\textbf{Relevance-authorization gap:} Retrieval systems—whether vector-based, keyword-based, or hybrid—optimize for relevance metrics rather than authorization policies. This creates a fundamental gap: search ranking considers semantic similarity, term frequency, or combined relevance signals, but authorization decisions depend on access control policies that are orthogonal to these relevance measures. For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, retrieval methods cannot enforce tenant isolation without an authorization predicate: $\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}$.
+\textbf{Relevance-authorization gap:} Retrieval systems—whether vector-based, keyword-based, or hybrid—optimize for relevance metrics rather than authorization policies. This creates a fundamental gap: search ranking considers semantic similarity, term frequency, or combined relevance signals, but authorization decisions depend on access control policies that are orthogonal to these relevance measures.
+
+For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, retrieval methods cannot enforce tenant isolation without an authorization predicate. Let $q$ denote a query, $u$ denote a user, $d$ denote a document, $\theta$ denote a relevance threshold, and $P(u,d)$ denote an authorization policy that returns $\mathrm{permit}$ or $\mathrm{deny}$. Then secure retrieval requires:
+
+\begin{equation}
+\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}
+\end{equation}
 
 \textbf{Tool-mediated disclosure:} Agents invoke tools with agent credentials rather than end-user authorization, potentially accessing unauthorized data across tenant boundaries.
 
@@ -177,10 +189,7 @@ In Llama Stack, when files are attached to vector stores, the \texttt{attributes
 Retrieval is gated in two tiers across multiple search modalities.
 \textbf{(1) Resource-level ABAC:} before any search, the system checks that the user is authorized to read the search store; if not, no search is performed.
 \textbf{(2) Chunk-level metadata filtering:} after retrieval, structured filters are applied on chunk metadata so that only documents satisfying the policy are admitted.
-LlamaStack supports vector search, keyword search (BM25), and hybrid approaches that combine both with optional reranking. Regardless of search methodology, authorization is applied consistently: each retrieval path first filters the document corpus by tenant and resource-level policies before applying relevance ranking, ensuring that all search modalities respect the same isolation boundaries. This composes retrieval methods (whether dense~\cite{karpukhin2020dpr}, sparse, or hybrid) with a mandatory authorization predicate:
-\[
-\mathcal{R}(q,u) = \{ d \in D : \mathrm{relevance}(q,d) > \theta \wedge P(u,d) = \mathrm{permit} \}.
-\]
+LlamaStack supports vector search, keyword search (BM25), and hybrid approaches that combine both with optional reranking. Regardless of search methodology, authorization is applied consistently: each retrieval path first filters the document corpus by tenant and resource-level policies before applying relevance ranking, ensuring that all search modalities respect the same isolation boundaries. This implements the secure retrieval formulation from Equation~(1).
 Backends such as Elasticsearch, PGVector, and other SQL-backed vector databases can support predicate pushdown for efficiency on large corpora; otherwise, post-retrieval gating still enforces the relevance/authorization separation across all provider types.
 
 \subsection{Shared inference (Layer 3)}
