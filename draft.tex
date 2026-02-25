@@ -35,7 +35,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: dense retrieval ranks documents by semantic similarity, not by authorization---so a query from one tenant can surface another tenant's confidential data simply because it is the nearest neighbor. We formalize this gap and analyze additional failure modes---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. Unlike client-side agent patterns, this approach centralizes tool execution, state management, and policy enforcement on the server, creating natural enforcement points for multitenant isolation and eliminating per-tenant infrastructure duplication.
 
-Our open-source implementation using Llama Stack--a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration--demonstrates that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure, enabling enterprise deployment of agentic AI with systematic behavioral control.
+Our open-source implementation using Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrates that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure, enabling enterprise deployment of agentic AI with systematic behavioral control.
 \end{abstract}
 
 % TODO: update ACM classification.
@@ -66,7 +66,7 @@ Our open-source implementation using Llama Stack--a vendor-neutral framework rea
 
 \section{Introduction}
 \subsection{Motivation}
-Enterprise adoption of generative AI has evolved beyond simple prompt-response interactions toward agentic systems--AI applications that autonomously reason, use tools, retrieve information, and execute multi-step workflows to accomplish complex tasks~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
+Enterprise adoption of generative AI has evolved beyond simple prompt-response interactions toward agentic systems---AI applications that autonomously reason, use tools, retrieve information, and execute multi-step workflows to accomplish complex tasks~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
 This evolution reflects a fundamental shift: rather than treating large language models (LLMs) as sophisticated text generators, organizations now deploy them as reasoning engines capable of taking actions in the world.
 
 An API-first paradigm is emerging to unify multi-turn inference, tool use, and retrieval behind a single endpoint.
@@ -82,7 +82,7 @@ However, real-world enterprise deployments differ sharply from the assumptions e
 \end{itemize}
 
 Na\"{\i}ve approaches to addressing these requirements replicate the entire agentic stack per tenant: separate vector stores, dedicated inference endpoints, and isolated tool configurations.
-This strategy incurs substantial costs --- infrastructure scales linearly with tenants rather than with actual usage --- and creates operational fragmentation that amplifies common ML systems maintenance risks~\cite{sculley2015hiddentechnicaldebt}.
+This strategy incurs substantial costs---infrastructure scales linearly with tenants rather than with actual usage---and creates operational fragmentation that amplifies common ML systems maintenance risks~\cite{sculley2015hiddentechnicaldebt}.
 
 \subsection{Problem statement}
 This paper addresses a fundamental tension in enterprise agentic AI deployment:
@@ -93,7 +93,7 @@ Autonomous agents require flexible tool access and multi-turn reasoning capabili
 
 Standard agentic AI deployments exhibit security assumptions incompatible with enterprise multitenancy:
 \begin{enumerate}
-  \item \textbf{Client-side orchestration:} the application manages the inference--tool--inference loop, distributing security-critical logic to potentially untrusted clients and increasing operational complexity~\cite{amershi2019se4ml}.
+  \item \textbf{Client-side orchestration:} the application manages the inference---tool---inference loop, distributing security-critical logic to potentially untrusted clients and increasing operational complexity~\cite{amershi2019se4ml}.
   \item \textbf{Homogeneous data access:} retrieval stacks assume uniform access to a corpus; retrieval methods (whether dense, sparse, or hybrid) optimize relevance ranking rather than authorization~\cite{karpukhin2020dpr}.
   \item \textbf{Implicit trust boundaries:} tool execution is often treated as a capability extension without systematic verification of who may invoke tools or consume tool outputs, despite the centrality of tool use in modern agent designs~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
   \item \textbf{Stateless isolation:} requests are treated independently, ignoring how conversation state and cached tool results can leak across boundaries; such hidden couplings are a classic source of ML systems fragility~\cite{sculley2015hiddentechnicaldebt}.
@@ -132,7 +132,9 @@ LLM application architectures have evolved through distinct phases, each introdu
 \textbf{Retrieval infrastructure} evolved to support multiple search modalities: dense vector search across diverse vector databases~\cite{johnson2017faiss}, sparse keyword matching (BM25), and hybrid approaches combining both with neural rerankers~\cite{blendedrag2024}. However, all of these modalities optimize for relevance; none enforce authorization natively.
 \textbf{Tool-using agents}~\cite{yao2023react,schick2023toolformer,karpas2022mrkl} extended LLMs with tool calls and an inference\,$\rightarrow$\,tool\,$\rightarrow$\,inference loop.
 \textbf{Autonomous multi-step agents} execute multi-tool workflows with limited human oversight.
-In multitenant deployments, isolation must span retrieval, tool invocation, state accumulation, and orchestration.
+\textbf{The Responses API paradigm}~\cite{openaiResponsesAPI,openresponses} represents a convergence of these phases, unifying inference, tool use, retrieval, and state management behind a single endpoint.
+
+Each phase introduced new capabilities but also inherited the security gaps of prior phases. The Responses API paradigm unifies these capabilities under a single interface but assumes single-tenant deployment. Enterprise multitenancy requires policy-aware tool execution, stateful conversation management, and orchestration controls---challenges amplified in agentic deployments where reasoning, retrieval, and tool execution interleave autonomously~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
 \section{Multitenant Agentic AI: Challenges and Solutions}
 \label{sec:challenges-solutions}
@@ -200,11 +202,11 @@ With $N$ tenants and $M$ model endpoints, cost scales as $O(M)$ rather than $O(N
 \section{Server-Side Orchestration as Enforcement Layer}
 \label{sec:server-side}
 
-As introduced in Section~\ref{sec:challenges-solutions}, the control path--tool invocation, state management, and policy enforcement--requires server-side orchestration to reduce the trusted computing base (TCB).
+As introduced in Section~\ref{sec:challenges-solutions}, the control path---tool invocation, state management, and policy enforcement---requires server-side orchestration to reduce the trusted computing base (TCB).
 This section argues why client-side orchestration is unsuitable and how the enforcement points map to the failure modes identified earlier.
 
 \subsection{The case against client-side orchestration}
-In client-side patterns, the client controls the inference--tool--inference loop.
+In client-side patterns, the client controls the inference---tool---inference loop.
 A compromised or buggy client can skip retrieval filters, invoke unauthorized tools, or accumulate cross-tenant context.
 Formally, client-side orchestration expands the TCB to include untrusted client code, so server-side security invariants cannot be enforced from the server alone.
 This is consistent with broader findings that ML systems become fragile when critical invariants are distributed across components without clear ownership or enforcement points~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
@@ -284,7 +286,7 @@ Importantly, Llama Stack operates as a \emph{platform layer} rather than a clien
 \subsection{Provider Architecture}
 Extensibility in Llama Stack is achieved through its provider architecture. Each API may be backed by multiple providers, which are categorized as inline or remote. Inline providers execute within the Llama Stack process and are suitable for sensitive operations requiring in-process execution. Remote providers adapt external inference engines, vector databases, or services through standardized interfaces.
 
-This separation enables hybrid deployments in which sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients, as all interactions occur through the unified API layer. A developer can prototype locally with inline providers (e.g., sqlite-vec for vector search, an in-process safety model), then move to production-grade remote providers (e.g., pgvector, vLLM) without changing application code or API calls--only the distribution configuration changes. This lowers the barrier from experimentation to production deployment while preserving consistent security and isolation guarantees across environments.
+This separation enables hybrid deployments in which sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients, as all interactions occur through the unified API layer. A developer can prototype locally with inline providers (e.g., sqlite-vec for vector search, an in-process safety model), then move to production-grade remote providers (e.g., pgvector, vLLM) without changing application code or API calls---only the distribution configuration changes. This lowers the barrier from experimentation to production deployment while preserving consistent security and isolation guarantees across environments.
 
 \subsection{Routing Layer}
 The routing layer dispatches API requests to provider instances based on logical resource identifiers. For example, inference requests are routed according to model identifiers, while vector queries are routed based on vector store identifiers. This indirection enables fine-grained control over resource access and placement.
@@ -342,8 +344,9 @@ Importantly, all agentic orchestration occurs within the server process, enablin
 
 
 \subsection{Responses API Implementation}
-The Responses API exposes operations to create responses (execute an agent), retrieve responses, list responses, inspect input items, and delete responses; creation supports both streaming and non-streaming modes.
-Internally, the implementation converts request input to chat messages and runs the inference--tool loop via a streaming orchestrator or a synchronous path.
+Llama Stack implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies as responses themselves.
+The core endpoint supports creating responses (executing an agent), retrieving, listing, inspecting input items, and deleting responses, in both streaming and non-streaming modes.
+Internally, the implementation converts request input to chat messages and runs the inference---tool loop via a streaming orchestrator or a synchronous path. Built-in tools (\texttt{file\_search}, \texttt{web\_search}, MCP) are resolved and executed server-side during this loop.
 Results are persisted through a responses store backed by an authorized SQL layer so that rows are tagged with owner and access attributes and filtered on read by the default ABAC policy.
 Streaming events expose reasoning, tool calls, and text deltas, giving operators and auditors fine-grained visibility into agent behavior without requiring client-side instrumentation.
 
@@ -378,7 +381,7 @@ The architecture supports several enterprise deployment patterns:
 
   \item \textbf{Per-team distributions for platform teams.} A platform team offering AI-as-a-service internally uses the Kubernetes operator to provision per-team distributions in separate namespaces, combining namespace-level network isolation with application-level ABAC for defense in depth.
 
-  \item \textbf{Progressive migration from development to production.} In both patterns, the provider abstraction allows organizations to start with lightweight backends (e.g., Ollama, sqlite-vec) during development and migrate to production-grade infrastructure (e.g., vLLM~\cite{kwon2023vllm}, pgvector) without modifying agent code or security policies--only the distribution configuration changes.
+  \item \textbf{Progressive migration from development to production.} In both patterns, the provider abstraction allows organizations to start with lightweight backends (e.g., Ollama, sqlite-vec) during development and migrate to production-grade infrastructure (e.g., vLLM~\cite{kwon2023vllm}, pgvector) without modifying agent code or security policies---only the distribution configuration changes.
 \end{itemize}
 
 \subsection{Design trade-offs and limitations}
@@ -389,20 +392,33 @@ The architecture involves several trade-offs:
 
   \item \textbf{Metadata filtering performance.} Filtering performance varies across vector database backends: some support predicate pushdown natively, while others require post-retrieval filtering that adds latency on large corpora.
 
-  \item \textbf{Model prior knowledge.} The inference layer shares models across tenants, which reduces cost but means that model prior knowledge--information learned during pretraining--is orthogonal to RAG isolation and cannot be controlled by the authorization layer.
+  \item \textbf{Model prior knowledge.} The inference layer shares models across tenants, which reduces cost but means that model prior knowledge---information learned during pretraining---is orthogonal to RAG isolation and cannot be controlled by the authorization layer.
 
   \item \textbf{Client-side function tools.} Client-side function tools, by design, execute outside the server trust boundary. Llama Stack mitigates this through explicit tool classification but cannot enforce server-side invariants on client-executed code.
 \end{itemize}
 
 \subsection{Related work}
-Will be adding more: TODO
-Production ML systems research has documented the operational fragility that arises when invariants are distributed across components~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}, and ML lifecycle platforms such as MLflow~\cite{mlflow} address reproducibility and deployment but do not target agentic multitenancy. Agent frameworks such as LangChain~\cite{langchain}, LangGraph~\cite{langgraph}, and CrewAI~\cite{crewai} provide developer-facing abstractions for building agents but orchestrate execution client-side, placing security-critical logic outside the server trust boundary. LLM serving systems such as vLLM~\cite{kwon2023vllm} and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation. To our knowledge, no prior work addresses the intersection of agentic AI orchestration and multitenant isolation on shared infrastructure--the gap that the layered architecture and Llama Stack implementation presented in this paper aim to fill.
+
+Several systems aim to standardize or simplify the development of LLM-based agentic applications. The closest to our work are API-layer platforms and enterprise agent runtimes that attempt to unify inference, tool use, and retrieval behind a common interface.
+
+OpenAI's Responses API~\cite{openaiResponsesAPI} and function-calling conventions~\cite{openaiFunctionCalling} define a widely adopted interface for stateful, tool-using agents, and the Model Context Protocol (MCP)~\cite{mcp} standardizes how agents discover and invoke external tools. These specifications establish \emph{what} an agent can do but are silent on \emph{who} may do it---they assume a single-tenant caller and provide no authorization layer. Llama Stack adopts these interface conventions (OpenAI-compatible endpoints, MCP tool support) but adds server-side policy enforcement, tenant-scoped state, and provider-neutral execution beneath them.
+
+The closest enterprise parallel is Databricks' Mosaic AI Agent Framework~\cite{databricksAgentFramework}, which wraps arbitrary agent code in an MLflow ResponsesAgent~\cite{mlflow,databricksResponsesAgent} for serving, tracing, evaluation, and monitoring, and connects agents to governed data through managed MCP servers backed by Unity Catalog. This provides production rails similar in spirit to our work, but couples the experience to the Databricks runtime and governance stack. Our goal in Llama Stack is to provide the same class of guarantees---multitenant isolation, auditable tool execution, retrieval gating---through an open, vendor-neutral API layer that operators can deploy on any infrastructure.
+
+Other systems tackle specific layers of the problem. LLM serving engines such as vLLM~\cite{kwon2023vllm} and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation; Llama Stack treats them as pluggable providers beneath its authorization layer. Vector databases such as Milvus~\cite{milvus} and Weaviate~\cite{weaviate}, and end-to-end retrieval platforms such as Vectara~\cite{vectara}, provide dense, sparse, and hybrid search but rank by relevance without authorization enforcement; Llama Stack's retrieval-gating layer (Section~\ref{sec:challenges-solutions}) adds tenant-aware filtering on top of any such backend.
+
+Agent orchestration frameworks---LangGraph~\cite{langgraph} for durable, stateful workflows; Microsoft's Agent Framework~\cite{microsoftAgentFramework} (successor to Semantic Kernel~\cite{semanticKernel} and AutoGen~\cite{autogen}) for typed, session-aware SDKs; Google's Agent Development Kit (ADK)~\cite{googleADK}; Haystack~\cite{haystack} for modular pipelines; LlamaIndex~\cite{llamaindex} for data-centric agent patterns; and others including Smolagents~\cite{smolagents} and Pydantic AI~\cite{pydanticai}---provide developer-facing abstractions for building agents. However, they orchestrate execution from the client or application process, placing security-critical logic outside a server-side trust boundary. Llama Stack is designed to be the server-side execution target that these frameworks call into, so that agents built with any OpenAI-compatible toolkit gain policy enforcement and tenant isolation without code changes.
+
+Production ML systems research has documented the fragility that arises when critical invariants are distributed across components~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}, and lifecycle platforms such as MLflow~\cite{mlflow} address reproducibility and deployment but do not target agentic multitenancy. To our knowledge, no prior work addresses the intersection of standardized agentic API design, server-side orchestration, and multitenant isolation on shared infrastructure---the gap this paper aims to fill.
+
+\subsection{Future work}
+Several directions remain open. First, formal verification of ABAC policy correctness---ensuring that policy compositions do not inadvertently permit cross-tenant access---would strengthen the guarantees beyond runtime enforcement. Second, quantitative benchmarking of isolation overhead (metadata filtering latency, authorization check cost per request, predicate pushdown efficiency across backends) is needed to characterize the performance trade-offs in production workloads. Third, multi-agent delegation patterns, where one agent invokes another on behalf of a different tenant, introduce authorization challenges that the current single-agent model does not address. Finally, extending the architecture to federated deployments---where Llama Stack instances in different administrative domains coordinate with consistent policy enforcement---would broaden applicability to cross-organizational use cases.
 
 \section{Conclusion}
 Agentic AI systems with autonomous tool use and multi-step reasoning introduce security and compliance challenges that exceed the assumptions in standard client-orchestrated patterns.
 We formalized the relevance-authorization gap in agentic retrieval~\cite{karpukhin2020dpr,johnson2017faiss} and analyzed failure modes unique to autonomous agent architectures, including tool-mediated disclosure and client-side orchestration bypass.
 
-Our layered isolation architecture demonstrates that server-side orchestration can serve as a unifying enforcement layer for secure agent behavior, centralizing retrieval, tool execution, and state management to maintain enterprise control over autonomous actions~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
+Our layered isolation architecture demonstrates that server-side orchestration can serve as a unifying enforcement layer for secure agent behavior, centralizing retrieval, tool execution, and state management to maintain enterprise control over autonomous actions~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}. The approach involves trade-offs---notably ABAC policy complexity and variable filtering performance across backends---that Section~\ref{sec:implementation} discusses.
 
 Llama Stack~\cite{llamastack} demonstrates that vendor-neutral, open-source tooling can enable enterprise-grade agentic multitenancy through provider abstraction and server-side Responses API implementation~\cite{openaiResponsesAPI,openresponses}. Combined with efficient serving infrastructure~\cite{kwon2023vllm} and open models~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete alternative to proprietary agentic platforms.
 
