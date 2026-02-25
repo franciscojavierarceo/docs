@@ -139,75 +139,7 @@
   url       = {https://arxiv.org/abs/2309.06180}
 }
 
-% Benchmarks
-@inproceedings{petroni2021kilt,
-  author    = {Petroni, Fabio and Piktus, Aleksandra and Fan, Angela and Lewis, Patrick and Yazdani, Majid and {De Cao}, Nicola and Thorne, James and Jernite, Yacine and Karpukhin, Vladimir and Maillard, Jean and others},
-  title     = {{KILT}: a Benchmark for Knowledge Intensive Language Tasks},
-  booktitle = {Conference of the North American Chapter of the Association for Computational Linguistics (NAACL)},
-  year      = {2021},
-  url       = {https://aclanthology.org/2021.naacl-main.200/}
-}
-
-@article{thakur2021beir,
-  author  = {Thakur, Nandan and Reimers, Nils and R{\"u}ckl{\'e}, Andreas and Srivastava, Abhishek and Gurevych, Iryna},
-  title   = {{BEIR}: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models},
-  journal = {arXiv preprint arXiv:2104.08663},
-  year    = {2021},
-  url     = {https://arxiv.org/abs/2104.08663}
-}
-
-@article{muennighoff2022mteb,
-  author  = {Muennighoff, Niklas and Tazi, Nouamane and Magne, Lo{\"i}c and Reimers, Nils},
-  title   = {{MTEB}: Massive Text Embedding Benchmark},
-  journal = {arXiv preprint arXiv:2210.07316},
-  year    = {2022},
-  url     = {https://arxiv.org/abs/2210.07316}
-}
-
-% Citation-aware generation
-@inproceedings{gao2023alce,
-  author    = {Gao, Tianyu and Yen, Howard and Yu, Jiatong and Chen, Danqi},
-  title     = {Enabling Large Language Models to Generate Text with Citations},
-  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
-  year      = {2023},
-  url       = {https://arxiv.org/abs/2305.14627}
-}
-
-% Agent evaluation
-@inproceedings{jimenez2024swebench,
-  author    = {Jimenez, Carlos E. and Yang, John and Wettig, Alexander and Yao, Shunyu and Pei, Kexin and Press, Ofir and Narasimhan, Karthik},
-  title     = {{SWE}-bench: Can Language Models Resolve Real-World {GitHub} Issues?},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2024},
-  url       = {https://arxiv.org/abs/2310.06770}
-}
-
-% Agent evaluation frameworks and agentic AI surveys
-@article{liu2024agentbench,
-  author  = {Liu, Xiao and Yu, Hao and Zhang, Hanchen and Xu, Yifan and Lei, Xuanyu and Lai, Hanyu and Gu, Yu and Ding, Hangliang and Men, Kaiwen and Yang, Kejuan and others},
-  title   = {{AgentBench}: Evaluating {LLMs} as Agents},
-  journal = {arXiv preprint arXiv:2308.03688},
-  year    = {2023},
-  url     = {https://arxiv.org/abs/2308.03688}
-}
-
-@article{xi2023rise,
-  author  = {Xi, Zhiheng and Chen, Wenxiang and Guo, Xin and He, Wang and Ding, Yiwen and Hong, Boyang and Zhang, Ming and Wang, Junzhe and Jin, Senjie and Zhou, Enyu and others},
-  title   = {The Rise and Potential of Large Language Model Based Agents: A Survey},
-  journal = {arXiv preprint arXiv:2309.07864},
-  year    = {2023},
-  url     = {https://arxiv.org/abs/2309.07864}
-}
-
-@article{chen2025small,
-  author  = {Chen, Xu and Liu, Yang and Zhang, Wei and Wang, Jing and Li, Ming and Zhao, Jun and Sun, Hao and Kim, David},
-  title   = {Small Language Models are the Future of Agentic {AI}},
-  journal = {arXiv preprint arXiv:2506.02153},
-  year    = {2025},
-  url     = {https://arxiv.org/abs/2506.02153}
-}
-
-% --- Kubernetes / shared cluster substrate (useful if you motivate k8s operator + multitenancy) ---
+% Kubernetes and shared cluster substrate
 @article{burns2016borg,
   author  = {Burns, Brendan and Grant, Brian and Oppenheimer, David and Brewer, Eric and Wilkes, John},
   title   = {Borg, Omega, and Kubernetes},
@@ -216,7 +148,7 @@
   url     = {https://cacm.acm.org/practice/borg-omega-and-kubernetes/}
 }
 
-% API paradigm reference
+% API paradigm references
 @misc{openaiResponsesAPI,
   author       = {{OpenAI}},
   title        = {Responses {API} Reference},
@@ -235,15 +167,7 @@
   note         = {Accessed: 2026-02-23}
 }
 
-@misc{a2a,
-  author       = {{A2A Project Contributors}},
-  title        = {{A2A}: Agent-to-Agent Communication Protocol},
-  year         = {2026},
-  howpublished = {GitHub repository},
-  url          = {https://github.com/a2aproject/A2A},
-  note         = {Accessed: 2026-02-24}
-}
-
+% Protocols
 @misc{mcp,
   author       = {{Anthropic}},
   title        = {Model Context Protocol},
@@ -253,6 +177,7 @@
   note         = {Accessed: 2026-02-24}
 }
 
+% Security
 @misc{willison2022prompt,
   author       = {Simon Willison},
   title        = {Prompt injection attacks against {GPT-3}},
@@ -263,6 +188,34 @@
   note         = {Accessed: 2026-02-24}
 }
 
+% Agent-building frameworks
+@misc{langchain,
+  author       = {{LangChain, Inc.}},
+  title        = {{LangChain}: Build context-aware reasoning applications},
+  year         = {2023},
+  howpublished = {Open-source project},
+  url          = {https://github.com/langchain-ai/langchain},
+  note         = {Accessed: 2026-02-23}
+}
+
+@misc{langgraph,
+  author       = {{LangChain, Inc.}},
+  title        = {{LangGraph}: Build resilient language agents as graphs},
+  year         = {2024},
+  howpublished = {Open-source project},
+  url          = {https://github.com/langchain-ai/langgraph},
+  note         = {Accessed: 2026-02-23}
+}
+
+@misc{crewai,
+  author       = {{CrewAI, Inc.}},
+  title        = {{CrewAI}: Framework for orchestrating role-playing autonomous {AI} agents},
+  year         = {2024},
+  howpublished = {Open-source project},
+  url          = {https://github.com/crewAIInc/crewAI},
+  note         = {Accessed: 2026-02-23}
+}
+
 % Hybrid search and advanced retrieval techniques
 @article{blendedrag2024,
   title={Blended RAG: Improving Retrieval-Augmented Generation through Hybrid Search},
@@ -270,13 +223,4 @@
   journal={arXiv preprint arXiv:2404.07220},
   year={2024},
   url={https://arxiv.org/abs/2404.07220}
-}
-
-@misc{contextualchunking2024,
-  title={Contextual Retrieval},
-  author={{Anthropic}},
-  year={2024},
-  howpublished={Technical report},
-  url={https://www.anthropic.com/news/contextual-retrieval},
-  note={Accessed: 2026-02-24}
 }
