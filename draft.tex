@@ -404,6 +404,9 @@ Internally, the implementation converts request input to chat messages and runs 
 
 % Draw provider groups on background layer FIRST
 \begin{scope}[on background layer]
+  % Client to Files API (drawn FIRST, underneath everything)
+  \draw[->, thick] ([xshift=-3mm]8,11.5) -- ([xshift=-3mm]8,5.5);
+
   \node[providerGroup, minimum width=44mm, minimum height=22mm] (infGroup) at (responsesPos) {};
   \node[providerGroup, minimum width=32mm, minimum height=18mm] (filesGroup) at (filesPos) {};
   \node[providerGroup, minimum width=38mm, minimum height=18mm] (vecGroup) at (vectorsPos) {};
@@ -469,6 +472,10 @@ Internally, the implementation converts request input to chat messages and runs 
 % Client to Search API (direct connection with 90-degree angle, parallel to Responses->Search)
 \draw[->, thick] ([yshift=-4mm]client.east) -- (17.8,10.8) -- (17.8,5.51);
 
+% Client to Vector Stores API (direct connection with 90-degree angle, parallel to Responses->Vector Stores)
+\draw[->, thick] ([yshift=-4mm]client.east) -- (13.3,10.8) -- (13.3,5.45);
+
+
 % Responses API to Prompts API (orthogonal: left then down)
 \draw[->, thick] (responses.west) -- (0,8.5) -- (prompts.north);
 \node[lab] at (0.6,8.1) {Read};
@@ -477,16 +484,7 @@ Internally, the implementation converts request input to chat messages and runs 
 \draw[->, thick] (responses.west) -- (4.2,8.5) -- (convos.north);
 \node[lab] at (4.2,8.1) {Read/Write};
 
-% Responses API to Files API (straight down)
-\draw[->, thick] (responses.south) -- (files.north);
 
-% Responses API to Vector Stores API (orthogonal: right then down)
-\draw[->, thick] (responses.east) -- (13,8.5) -- (vectors.north);
-\node[lab] at (12.2,8.1) {Read};
-
-% Responses API to Search API (orthogonal: right then down)
-\draw[->, thick] (responses.east) -- (17.5,8.5) -- (search.north);
-\node[lab] at (16.8,8.1) {Read};
 
 % Responses API to Tools (Tool Call - green arrow: right, around Search API, down to Tools)
 \draw[->, ToolGreen, line width=2pt, rounded corners=8pt] ([yshift=2mm]responses.east) -- (19,8.7) -- (19,-0.8) -- (17.3,-0.8);
@@ -506,8 +504,8 @@ Internally, the implementation converts request input to chat messages and runs 
 % Vector Stores to Search API (horizontal)
 \draw[->, thick] (vectors.east) -- node[lab, above] {Read} (search.west);
 
-% Search API to File Search (red dashed line straight down)
-\draw[->, red, dashed, thick] (search.south) -- (tFileS.north);
+% Search API to File Search (red dashed line with 90-degree angles)
+\draw[->, red, dashed, thick] (search.south) -- (17.5,3) -- (15.9,3) -- (tFileS.north);
 
 \end{tikzpicture}%
 }
