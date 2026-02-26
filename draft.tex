@@ -469,7 +469,7 @@ Internally, the implementation converts request input to chat messages and runs 
 
 % Responses API to Conversations API (orthogonal: left then down)
 \draw[->, thick] (responses.west) -- (4.2,8.5) -- (convos.north);
-\node[lab] at (4.8,8.1) {Read/Write};
+\node[lab] at (4.2,8.1) {Read/Write};
 
 % Responses API to Files API (straight down)
 \draw[->, thick] (responses.south) -- (files.north);
@@ -480,7 +480,7 @@ Internally, the implementation converts request input to chat messages and runs 
 
 % Responses API to Search API (orthogonal: right then down)
 \draw[->, thick] (responses.east) -- (17.5,8.5) -- (search.north);
-\node[lab] at (17.5,8.1) {Read};
+\node[lab] at (16.8,8.1) {Read};
 
 % Responses API to Tools (Tool Call - green arrow: right, around Search API, down to Tools)
 \draw[->, ToolGreen, line width=2pt, rounded corners=8pt] ([yshift=2mm]responses.east) -- (19,8.7) -- (19,-0.8) -- (17.3,-0.8);
