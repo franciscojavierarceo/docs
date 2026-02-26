@@ -33,7 +33,7 @@
 \begin{abstract}
 Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly prevalent in enterprise AI deployments. However, real enterprise environments introduce challenges largely absent from academic treatments and consumer-facing APIs: multiple tenants with heterogeneous data, strict access-control requirements, regulatory compliance, and cost pressures that demand shared infrastructure.
 
-A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. Unlike client-side agent patterns, this approach centralizes tool execution, state management, and policy enforcement on the server, creating natural enforcement points for multitenant isolation and eliminating per-tenant infrastructure duplication.
+A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. This approach centralizes security-critical operations---tool execution authorization, state isolation, and policy enforcement---on the server, creating natural enforcement points for multitenant isolation while allowing client-side frameworks to retain control over agent composition and latency-sensitive operations.
 
 Our open-source implementation using Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrates that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure, enabling enterprise deployment of agentic AI with systematic behavioral control.
 \end{abstract}
@@ -55,7 +55,7 @@ Our open-source implementation using Llama Stack---a vendor-neutral framework re
 \ccsdesc[300]{Computing methodologies~Machine learning}
 \ccsdesc[100]{Information systems~Data management systems}
 
-\keywords{Llama Stack, Kubernetes operator, LLM systems, MLOps, LLMOps}
+\keywords{multitenancy, retrieval-augmented generation, access control, agentic AI, server-side orchestration, Llama Stack, LLM systems, LLMOps}
 
 
 \DeclareMathOperator{\relevance}{relevance}
@@ -102,6 +102,8 @@ In multitenant settings, these assumptions create serious vulnerabilities.
 A document highly similar to a query may belong to a different tenant.
 A tool call may access resources outside the user's authorization scope.
 Conversation history may accumulate context that crosses security boundaries.
+
+This paper focuses on agentic RAG---the intersection of retrieval-augmented generation and autonomous tool use---as the primary case study, since retrieval is where the relevance-authorization gap is most acute. However, the layered isolation architecture and server-side enforcement patterns we propose are general and extend to other agentic capabilities including inference, tool execution, code generation, and multi-step workflows.
 
 \subsection{Contributions}
 This paper makes the following contributions:
@@ -164,7 +166,7 @@ For tenants $T_A$ and $T_B$ sharing corpus $D = D_A \cup D_B$, retrieval methods
 
 \textbf{Client-side bypass:} When orchestration runs client-side, malicious clients can skip authorization checks, manipulate tool invocation, or extract unauthorized data.
 
-These shortcomings stem from distributing security-critical logic outside the trust boundary~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
+These shortcomings stem from distributing security-critical logic outside the trust boundary~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml,shapira2025agentsofchaos}.
 
 \subsection{Proposed solution: layered isolation with server-side orchestration}
 To address these shortcomings, we propose a two-part solution.
@@ -183,7 +185,7 @@ The following subsections detail each layer.
 \subsection{Policy-aware ingestion (Layer 1)}
 Tenant metadata must be attached at document ingestion time, not retrofitted.
 This reduces the risk of accidental cross-tenant coupling and missing invariants during system evolution~\cite{sculley2015hiddentechnicaldebt}.
-Define an ingestion function $\mathcal{I}(d, t) \rightarrow D_t$ that tags document $d$ with tenant $t$'s attributes so that every chunk inherits ownership metadata.
+The ingestion function $\mathcal{I}$ defined above ensures that every chunk inherits ownership metadata, so downstream retrieval and authorization can operate on consistent tenant attributes.
 
 \subsection{Retrieval gating (Layer 2)}
 Retrieval is gated in two tiers across multiple search modalities.
@@ -215,7 +217,7 @@ Server-side orchestration centralizes policy enforcement but introduces its own 
 
 In practice, hybrid architectures are likely to emerge as the dominant pattern: server-side orchestration enforces security-critical invariants (authorization, state isolation, audit logging), while client-side frameworks retain control over agent composition, user interaction, and latency-sensitive tool calls that do not cross trust boundaries. Llama Stack's design supports this model---clients orchestrate their agent logic using any OpenAI-compatible framework, while the server enforces policy at the API boundary.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
     \centering
     \resizebox{\columnwidth}{!}{%
     \begin{tikzpicture}[
@@ -242,7 +244,7 @@ In practice, hybrid architectures are likely to emerge as the dominant pattern: 
 \subsection{Enforcement points}
 Table~\ref{tab:enforcement} maps each shortcoming from Section~\ref{sec:challenges-solutions} to the enforcement point that mitigates it.
 
-\begin{table}[t]
+\begin{table}[!htbp]
   \centering
   \small
   \setlength{\tabcolsep}{3pt}
@@ -274,7 +276,7 @@ Llama Stack~\cite{llamastack} provides an open-source implementation of the arch
 \subsection{Layered Architecture}
 Llama Stack follows a layered architecture that separates concerns across distinct tiers, as illustrated in Figure~\ref{fig:architecture}. At the top, an HTTP/REST layer handles request routing, authentication, quota enforcement, and streaming. Beneath this layer, a set of domain-specific APIs expose functionality for inference, agentic execution, vector I/O, safety, and tool integration.
 
-A routing layer mediates between API calls and concrete provider implementations, resolving logical resource identifiers (e.g., model identifiers or vector store identifiers) to physical provider instances. Below this, a provider layer encapsulates both inline providers executing in-process and remote providers that adapt external services. Persistent state is maintained in a storage layer comprising key–value stores, relational stores, and vector databases.
+A routing layer mediates between API calls and concrete provider implementations, resolving logical resource identifiers (e.g., model identifiers or vector store identifiers) to physical provider instances. Below this, a provider layer encapsulates both inline providers executing in-process and remote providers that adapt external services. Persistent state is maintained in a storage layer comprising key--value stores, relational stores, and vector databases.
 
 This separation enables independent evolution of APIs, providers, and storage backends while preserving a unified control plane for policy enforcement.
 
@@ -312,7 +314,7 @@ The Llama Stack server is implemented atop a modern asynchronous web framework a
 
 Importantly, all agentic orchestration occurs within the server process, enabling comprehensive audit logging of inference calls, tool executions, and data access events.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
   \centering
   \resizebox{\columnwidth}{!}{%
   \begin{tikzpicture}[
@@ -366,27 +368,18 @@ The architectural guarantees described above must be realized on shared infrastr
 The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deployment and lifecycle management through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports multiple deployment topologies:
 
 \begin{itemize}
-  \item \textbf{Shared instances}: Single deployment serving multiple tenants with application-level ABAC isolation
-  \item \textbf{Per-tenant instances}: Separate deployments in tenant-specific namespaces combining Kubernetes RBAC with application-level policies
-  \item \textbf{Hybrid approaches}: High-security tenants receive dedicated instances while lower-sensitivity tenants share infrastructure
+  \item \textbf{Shared instances}: A single deployment serves multiple tenants with application-level ABAC isolation. For example, multiple business units in a regulated organization share one Llama Stack instance, avoiding per-unit infrastructure costs while satisfying compliance requirements.
+  \item \textbf{Per-tenant instances}: Separate deployments in tenant-specific namespaces combine Kubernetes RBAC with application-level policies. A platform team offering AI-as-a-service internally can provision per-team distributions, combining namespace-level network isolation with ABAC for defense in depth.
+  \item \textbf{Hybrid approaches}: High-security tenants receive dedicated instances while lower-sensitivity tenants share infrastructure.
 \end{itemize}
+
+In all topologies, the provider abstraction allows organizations to start with lightweight backends (e.g., Ollama, sqlite-vec) during development and migrate to production-grade infrastructure (e.g., vLLM~\cite{kwon2023vllm}, pgvector) without modifying agent code or security policies---only the distribution configuration changes.
 
 The operator's provider abstraction enables deployment of heterogeneous inference backends (vLLM~\cite{kwon2023vllm}, Ollama, proprietary endpoints) and vector databases (FAISS~\cite{johnson2017faiss}, ChromaDB, PGVector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, sqlite-vec) as shared Kubernetes services. Multiple Llama Stack instances reference the same backends, achieving cost savings through infrastructure sharing while maintaining logical isolation through the authorization layer.
 
 This design scales economically: adding tenants requires only logical configuration (authorization policies, database schemas) rather than full infrastructure duplication, crucial for cost-constrained enterprise deployments.
 
 \section{Analysis and Discussion}
-
-\subsection{Deployment scenarios}
-The architecture supports several enterprise deployment patterns:
-
-\begin{itemize}
-  \item \textbf{Shared instance for regulated organizations.} Multiple business units share a single Llama Stack instance. ABAC policies ensure that each unit's documents, tool invocations, and conversation state remain isolated, avoiding the cost of per-unit infrastructure while satisfying compliance requirements.
-
-  \item \textbf{Per-team distributions for platform teams.} A platform team offering AI-as-a-service internally uses the Kubernetes operator to provision per-team distributions in separate namespaces, combining namespace-level network isolation with application-level ABAC for defense in depth.
-
-  \item \textbf{Progressive migration from development to production.} In both patterns, the provider abstraction allows organizations to start with lightweight backends (e.g., Ollama, sqlite-vec) during development and migrate to production-grade infrastructure (e.g., vLLM~\cite{kwon2023vllm}, pgvector) without modifying agent code or security policies---only the distribution configuration changes.
-\end{itemize}
 
 \subsection{Design trade-offs and limitations}
 The architecture involves several trade-offs:
