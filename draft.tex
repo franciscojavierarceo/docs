@@ -35,7 +35,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. This approach centralizes security-critical operations---tool execution authorization, state isolation, and policy enforcement---on the server, creating natural enforcement points for multitenant isolation while allowing client-side frameworks to retain control over agent composition and latency-sensitive operations.
 
-Our open-source implementation using Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrates that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure, enabling enterprise deployment of agentic AI with systematic behavioral control.
+We validate the proposed architecture through an open sourced implementation in Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrating that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure.
 \end{abstract}
 
 \begin{CCSXML}
@@ -116,7 +116,7 @@ This paper makes the following contributions:
 
   \item We introduce server-side orchestration as a unifying enforcement layer that centralizes retrieval, tool execution, and state management, reducing the trusted computing base for secure multitenant RAG and aligning with production ML engineering best practices~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
-  \item We present an open-source, vendor-neutral framework based on Llama Stack~\cite{llamastack} and Kubernetes deployment via an operator~\cite{llamastackk8soperator,burns2016borg} that enables pluggable models, vector stores, and tools, demonstrating the feasibility of secure multitenant RAG on shared infrastructure.
+  \item We validate the proposed architecture through an implementation in Llama Stack~\cite{llamastack}, an open-source, vendor-neutral framework with Kubernetes deployment via an operator~\cite{llamastackk8soperator,burns2016borg}, demonstrating the feasibility of secure multitenant agentic RAG on shared infrastructure with pluggable models, vector stores, and tools.
 \end{enumerate}
 
 \paragraph{Primary sources.}
@@ -409,7 +409,7 @@ Enterprise deployment of agentic AI systems introduces security and compliance c
 
 To address these shortcomings, we proposed a layered isolation architecture that separates the data path (policy-aware ingestion, retrieval gating, shared inference) from the control path (server-side orchestration for tool execution, state management, and policy enforcement). Rather than positioning server-side orchestration as a replacement for client-side frameworks, we argued that hybrid architectures---where server-side enforcement secures trust-boundary-crossing operations while client-side frameworks retain control over agent composition---represent a practical path forward.
 
-Our open-source implementation in Llama Stack~\cite{llamastack} demonstrates that these guarantees are achievable through a vendor-neutral, provider-pluggable API layer with server-side Responses API execution~\cite{openaiResponsesAPI,openresponses}. Combined with efficient serving infrastructure~\cite{kwon2023vllm} and open models~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic platforms, enabling secure multitenancy on shared infrastructure without per-tenant duplication.
+Our open-source implementation through Llama Stack~\cite{llamastack} demonstrates that the proposed architecture is realizable in a vendor-neutral framework with server-side Responses API execution~\cite{openaiResponsesAPI,openresponses} and pluggable providers. Combined with efficient serving infrastructure~\cite{kwon2023vllm} and open models~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic platforms, enabling secure multitenancy on shared infrastructure without per-tenant duplication.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
