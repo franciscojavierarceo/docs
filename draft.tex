@@ -463,6 +463,12 @@ Internally, the implementation converts request input to chat messages and runs 
 % Client to Responses API (main red arrow)
 \draw[->, red, line width=1.5pt] (client.south) -- (responses.north);
 
+% Client to Conversations API (direct connection with 90-degree angle, parallel to Responses->Convos)
+\draw[->, thick] ([yshift=-4mm]client.west) -- (4.5,10.8) -- (4.5,5.5);
+
+% Client to Search API (direct connection with 90-degree angle, parallel to Responses->Search)
+\draw[->, thick] ([yshift=-4mm]client.east) -- (17.8,10.8) -- (17.8,5.51);
+
 % Responses API to Prompts API (orthogonal: left then down)
 \draw[->, thick] (responses.west) -- (0,8.5) -- (prompts.north);
 \node[lab] at (0.6,8.1) {Read};
