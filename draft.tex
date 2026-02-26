@@ -402,11 +402,16 @@ Internally, the implementation converts request input to chat messages and runs 
 \coordinate (vectorsPos) at (13,5);
 \coordinate (fpPos) at (10.5,2.5);
 
-% Draw provider groups on background layer FIRST
+% Draw Client to Files API arrow on deepest background layer
 \begin{scope}[on background layer]
-  % Client to Files API (drawn FIRST, underneath everything)
+\begin{scope}[on background layer]
+  % Client to Files API (drawn on deepest layer, underneath everything)
   \draw[->, thick] ([xshift=-3mm]8,11.5) -- ([xshift=-3mm]8,5.5);
+\end{scope}
+\end{scope}
 
+% Draw provider groups on background layer
+\begin{scope}[on background layer]
   \node[providerGroup, minimum width=44mm, minimum height=22mm] (infGroup) at (responsesPos) {};
   \node[providerGroup, minimum width=32mm, minimum height=18mm] (filesGroup) at (filesPos) {};
   \node[providerGroup, minimum width=38mm, minimum height=18mm] (vecGroup) at (vectorsPos) {};
