@@ -400,7 +400,7 @@ Internally, the implementation converts request input to chat messages and runs 
 \coordinate (responsesPos) at (8,8.5);
 \coordinate (filesPos) at (8,5);
 \coordinate (vectorsPos) at (13,5);
-\coordinate (fpPos) at (10.5,1.2);
+\coordinate (fpPos) at (10.5,2.5);
 
 % Draw provider groups on background layer FIRST
 \begin{scope}[on background layer]
@@ -429,31 +429,35 @@ Internally, the implementation converts request input to chat messages and runs 
 \node[boxRed, minimum width=32mm] (fp) at (fpPos) {File Processor API};
 \node[lab, anchor=south] at ([yshift=1mm]fpGroup.north) {File Processor Providers};
 
-% Legend
-\node[boxSpec, minimum width=20mm, minimum height=7mm, anchor=west, fill=white] (legA) at (-1.5,-1.3) {};
-\node[lab, anchor=west] at ([xshift=2mm]legA.east) {OpenAI Spec Available};
-\node[boxKnown, minimum width=20mm, minimum height=7mm, anchor=west] (legB) at (-1.5,-2.2) {};
-\node[lab, anchor=west] at ([xshift=2mm]legB.east) {Closed Source (Known)};
-\node[boxRed, minimum width=20mm, minimum height=7mm, anchor=west] (legC) at (-1.5,-3.1) {};
-\node[lab, anchor=west] at ([xshift=2mm]legC.east) {Closed Source (Unknown)};
-
-% Tools area (made wider for better spacing)
+% Legend aligned with Tools box horizontally, trimmed margins
 \begin{scope}[on background layer]
-\fill[ToolsPurple!45, rounded corners=10pt] (4.2,-4.2) rectangle (17.3,-0.6);
-\draw[SpecBlue!40!black, rounded corners=10pt, line width=0.8pt] (4.2,-4.2) rectangle (17.3,-0.6);
+\fill[gray!8, rounded corners=6pt] (-1.8,0.6) rectangle (3.8,-2.2);
+\draw[black, rounded corners=6pt, line width=0.6pt] (-1.8,0.6) rectangle (3.8,-2.2);
 \end{scope}
-\node[font=\large\bfseries] at (10.75,-0.95) {Tools};
+\node[boxSpec, minimum width=20mm, minimum height=7mm, anchor=west, fill=white] (legA) at (-1.5,0.1) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legA.east) {OpenAI Spec Available};
+\node[boxKnown, minimum width=20mm, minimum height=7mm, anchor=west] (legB) at (-1.5,-0.8) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legB.east) {Closed Source (Known)};
+\node[boxRed, minimum width=20mm, minimum height=7mm, anchor=west] (legC) at (-1.5,-1.7) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legC.east) {Closed Source (Unknown)};
+
+% Tools area (moved up further to reduce whitespace)
+\begin{scope}[on background layer]
+\fill[ToolsPurple!45, rounded corners=10pt] (4.2,-2.5) rectangle (17.3,1.1);
+\draw[SpecBlue!40!black, rounded corners=10pt, line width=0.8pt] (4.2,-2.5) rectangle (17.3,1.1);
+\end{scope}
+\node[font=\large\bfseries] at (10.75,0.75) {Tools};
 % Top row - more evenly spaced with extra room
-\node[tool] (tImg)   at (5.6,-1.9) {Image Generation};
-\node[tool] (tFunc)  at (8.2,-1.9) {Function Calling};
-\node[tool] (tMcp)   at (10.75,-1.9) {Remote MCP};
-\node[tool] (tWeb)   at (13.3,-1.9) {Web Search};
-\node[tool] (tFileS) at (15.9,-1.9) {File Search};
+\node[tool] (tImg)   at (5.6,-0.2) {Image Generation};
+\node[tool] (tFunc)  at (8.2,-0.2) {Function Calling};
+\node[tool] (tMcp)   at (10.75,-0.2) {Remote MCP};
+\node[tool] (tWeb)   at (13.3,-0.2) {Web Search};
+\node[tool] (tFileS) at (15.9,-0.2) {File Search};
 % Bottom row - centered within the Tools box
-\node[tool, minimum width=24mm] (tCI)    at (7.5,-3.1) {Code Interpreter};
-\node[tool, minimum width=22mm] (tCU)    at (9.8,-3.1) {Computer use};
-\node[tool, minimum width=20mm] (tPatch) at (12.1,-3.1) {Apply patch};
-\node[tool, minimum width=18mm] (tShell) at (14.2,-3.1) {Shell};
+\node[tool, minimum width=24mm] (tCI)    at (7.5,-1.4) {Code Interpreter};
+\node[tool, minimum width=22mm] (tCU)    at (9.8,-1.4) {Computer use};
+\node[tool, minimum width=20mm] (tPatch) at (12.1,-1.4) {Apply patch};
+\node[tool, minimum width=18mm] (tShell) at (14.2,-1.4) {Shell};
 
 % Arrows
 % Client to Responses API (main red arrow)
@@ -479,19 +483,19 @@ Internally, the implementation converts request input to chat messages and runs 
 \node[lab] at (17.5,8.1) {Read};
 
 % Responses API to Tools (Tool Call - green arrow: right, around Search API, down to Tools)
-\draw[->, ToolGreen, line width=2pt, rounded corners=8pt] ([yshift=2mm]responses.east) -- (19,8.7) -- (19,-2.5) -- (17.3,-2.5);
+\draw[->, ToolGreen, line width=2pt, rounded corners=8pt] ([yshift=2mm]responses.east) -- (19,8.7) -- (19,-0.8) -- (17.3,-0.8);
 \node[font=\bfseries, text=ToolGreen, anchor=south] at (14,8.7) {Tool Call};
 
 % Files API to Vector Stores API (horizontal)
 \draw[->, thick] (files.east) -- node[lab, above] {Read} (vectors.west);
 
 % File Processor to Files API (from left side, orthogonal: left then up to Files)
-\draw[->, dashed, thick] (fp.west) -- (8,1.2) -- (files.south);
-\node[lab] at (7.3,1.5) {Read};
+\draw[->, dashed, thick] (fp.west) -- (8,2.5) -- (files.south);
+\node[lab] at (7.3,2.8) {Read};
 
 % File Processor to Vector Stores API (from right side, orthogonal: right then up to Vectors)
-\draw[->, dashed, thick] (fp.east) -- (13,1.2) -- (vectors.south);
-\node[lab] at (13.7,1.5) {Write};
+\draw[->, dashed, thick] (fp.east) -- (13,2.5) -- (vectors.south);
+\node[lab] at (13.7,2.8) {Write};
 
 % Vector Stores to Search API (horizontal)
 \draw[->, thick] (vectors.east) -- node[lab, above] {Read} (search.west);
