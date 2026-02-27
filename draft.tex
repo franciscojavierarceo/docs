@@ -132,7 +132,7 @@ This paper makes the following contributions:
 
   \item We propose a layered isolation architecture for enterprise RAG that combines policy-aware ingestion, retrieval-time gating, and shared inference to achieve strict tenant isolation without per-tenant duplication of storage or models.
 
-  \item We introduce server-side orchestration as a unifying enforcement layer that centralizes retrieval, tool execution, and state management, reducing the trusted computing base for secure multitenant RAG and aligning with production ML engineering best practices~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
+  \item We argue that server-side orchestration provides a natural enforcement layer for security-critical operations---centralizing authorization, state isolation, and audit logging---while client-side frameworks retain control over agent composition, enabling hybrid architectures that reduce the trusted computing base without sacrificing flexibility~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
   \item We validate the proposed architecture through an implementation in Llama Stack~\cite{llamastack}, an open-source, vendor-neutral framework with Kubernetes deployment via an operator~\cite{llamastackk8soperator,burns2016borg}, demonstrating the feasibility of secure multitenant agentic RAG on shared infrastructure with pluggable models, vector stores, and tools.
 \end{enumerate}
@@ -196,7 +196,7 @@ The three data-path layers are:
 
 \textbf{Layer 2: Retrieval gating.} Two-tier enforcement: resource-level authorization before search and chunk-level filtering after retrieval, composing similarity search with authorization predicates.
 
-\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O$($N \cdot M$) to $O$($M$).
+\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O$($N \cdot M$) to $O$($M$), where $N$ is the number of tenants and $M$ is the number of model endpoints.
 
 The following subsections detail each layer.
 
