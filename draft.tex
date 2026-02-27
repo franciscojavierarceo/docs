@@ -7,9 +7,27 @@
 \usepackage{tabularx}
 \usepackage{booktabs}
 \usepackage{url}
+\usepackage{xcolor}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning}
+%\usetikzlibrary{arrows.meta,positioning}
+\usetikzlibrary{
+  patterns,
+  positioning,
+  arrows.meta,
+  shapes.geometric,
+  shapes.symbols,
+  fit,
+  calc,
+  backgrounds
+}
 
+\definecolor{SpecOrange}{RGB}{245,166,35}
+\definecolor{KnownBlue}{RGB}{170,220,255}
+\definecolor{SpecBlue}{RGB}{50,110,255}
+\definecolor{UnknownRed}{RGB}{255,140,140}
+\definecolor{ToolsPurple}{RGB}{190,175,255}
+\definecolor{ToolYellow}{RGB}{245,235,170}
+\definecolor{ToolGreen}{RGB}{40,160,70}
 
 %\title{Towards Secure, Multitenant, Vendor-Neutral Enterprise RAG on Shared Infrastructure}
 \title{Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
@@ -350,9 +368,156 @@ Importantly, all agentic orchestration occurs within the server process, enablin
 
 
 \subsection{Responses API Implementation}
-Llama Stack implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies as responses themselves.
+Llama Stack implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies as responses themselves (Figure~\ref{fig:openai-responses-api}).
 The core endpoint supports creating responses (executing an agent), retrieving, listing, inspecting input items, and deleting responses, in both streaming and non-streaming modes.
 Internally, the implementation converts request input to chat messages and runs the inference---tool loop via a streaming orchestrator or a synchronous path. Built-in tools (\texttt{file\_search}, \texttt{web\_search}, MCP) are resolved and executed server-side during this loop.
+
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\sffamily,
+  >=Latex,
+  line cap=round,
+  box/.style={rounded corners=6pt, minimum height=10mm, align=center, draw=black, fill=white, line width=0.8pt},
+  boxSpec/.style={box, draw=SpecBlue, text=black, fill=white, line width=1.2pt},
+  boxKnown/.style={box, fill=KnownBlue, draw=SpecBlue!70!black, text=black, line width=1pt},
+  boxRed/.style={box, fill=UnknownRed, draw=black, text=black, line width=1pt},
+  providerGroup/.style={draw=black, dashed, rounded corners=8pt, inner sep=4mm,
+    fill=yellow!12, pattern=north east lines, pattern color=yellow!50!black},
+  tool/.style={rounded corners=6pt, draw=black, fill=ToolYellow, minimum height=9mm,
+    minimum width=24mm, align=center, line width=0.6pt, font=\sffamily\small},
+  lab/.style={font=\footnotesize}
+]
+
+% Title
+\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Llama Stack Responses Implementation}};
+
+% OpenAI Client
+\node[box, minimum width=32mm] (client) at (8,11.2) {OpenAI Client};
+
+% Define coordinates for positioning
+\coordinate (responsesPos) at (8,8.5);
+\coordinate (filesPos) at (8,5);
+\coordinate (vectorsPos) at (13,5);
+\coordinate (fpPos) at (10.5,2.5);
+
+% Draw Client to Files API arrow on deepest background layer
+\begin{scope}[on background layer]
+\begin{scope}[on background layer]
+  % Client to Files API (drawn on deepest layer, underneath everything)
+  \draw[->, thick] ([xshift=-3mm]8,11.5) -- ([xshift=-3mm]8,5.5);
+\end{scope}
+\end{scope}
+
+% Draw provider groups on background layer
+\begin{scope}[on background layer]
+  \node[providerGroup, minimum width=44mm, minimum height=22mm] (infGroup) at (responsesPos) {};
+  \node[providerGroup, minimum width=32mm, minimum height=18mm] (filesGroup) at (filesPos) {};
+  \node[providerGroup, minimum width=38mm, minimum height=18mm] (vecGroup) at (vectorsPos) {};
+  \node[providerGroup, minimum width=40mm, minimum height=18mm] (fpGroup) at (fpPos) {};
+\end{scope}
+
+% Inference Providers label (above the provider group)
+\node[lab, anchor=south] at ([yshift=11mm]responsesPos) {Inference Providers};
+
+% Draw API boxes on top (main layer)
+\node[boxSpec, minimum width=32mm, fill=white] (responses) at (responsesPos) {Responses API};
+
+% Middle row APIs
+\node[boxKnown, minimum width=26mm] (prompts) at (0,5) {Prompts API};
+\node[boxSpec, minimum width=32mm] (convos) at (4.2,5) {Conversations API};
+\node[boxSpec, minimum width=24mm, fill=white] (files) at (filesPos) {Files API};
+\node[lab, anchor=south] at ([yshift=1mm]filesGroup.north) {Files Providers};
+\node[boxSpec, minimum width=30mm, fill=white] (vectors) at (vectorsPos) {Vector Stores API};
+\node[lab, anchor=south] at ([yshift=1mm]vecGroup.north) {Vector Store Providers};
+\node[boxSpec, minimum width=24mm] (search) at (17.5,5) {Search API};
+
+% File Processor
+\node[boxRed, minimum width=32mm] (fp) at (fpPos) {File Processor API};
+\node[lab, anchor=south] at ([yshift=1mm]fpGroup.north) {File Processor Providers};
+
+% Legend aligned with Tools box horizontally, trimmed margins
+\begin{scope}[on background layer]
+\fill[gray!8, rounded corners=6pt] (-1.8,0.6) rectangle (3.8,-2.2);
+\draw[black, rounded corners=6pt, line width=0.6pt] (-1.8,0.6) rectangle (3.8,-2.2);
+\end{scope}
+\node[boxSpec, minimum width=20mm, minimum height=7mm, anchor=west, fill=white] (legA) at (-1.5,0.1) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legA.east) {OpenAI Spec Available};
+\node[boxKnown, minimum width=20mm, minimum height=7mm, anchor=west] (legB) at (-1.5,-0.8) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legB.east) {Closed Source (Known)};
+\node[boxRed, minimum width=20mm, minimum height=7mm, anchor=west] (legC) at (-1.5,-1.7) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legC.east) {Closed Source (Unknown)};
+
+% Tools area (moved up further to reduce whitespace)
+\begin{scope}[on background layer]
+\fill[ToolsPurple!45, rounded corners=10pt] (4.2,-2.5) rectangle (17.3,1.1);
+\draw[SpecBlue!40!black, rounded corners=10pt, line width=0.8pt] (4.2,-2.5) rectangle (17.3,1.1);
+\end{scope}
+\node[font=\large\bfseries] at (10.75,0.75) {Tools};
+% Top row - more evenly spaced with extra room
+\node[tool] (tImg)   at (5.6,-0.2) {Image Generation};
+\node[tool] (tFunc)  at (8.2,-0.2) {Function Calling};
+\node[tool] (tMcp)   at (10.75,-0.2) {Remote MCP};
+\node[tool] (tWeb)   at (13.3,-0.2) {Web Search};
+\node[tool] (tFileS) at (15.9,-0.2) {File Search};
+% Bottom row - evenly spaced within the Tools box
+\node[tool, minimum width=24mm] (tCI)    at (7,-1.4) {Code Interpreter};
+\node[tool, minimum width=22mm] (tCU)    at (9.5,-1.4) {Computer use};
+\node[tool, minimum width=20mm] (tPatch) at (11.8,-1.4) {Apply patch};
+\node[tool, minimum width=18mm] (tShell) at (13.9,-1.4) {Shell};
+
+% Arrows
+% Client to Responses API (main red arrow)
+\draw[->, red, line width=1.5pt] (client.south) -- (responses.north);
+
+% Client to Conversations API (direct connection with 90-degree angle, parallel to Responses->Convos)
+\draw[->, thick] ([yshift=-4mm]client.west) -- (4.5,10.8) -- (4.5,5.5);
+
+% Client to Search API (direct connection with 90-degree angle, parallel to Responses->Search)
+\draw[->, thick] ([yshift=-4mm]client.east) -- (17.5,10.8) -- (17.5,5.51);
+
+% Client to Vector Stores API (direct connection with 90-degree angle, parallel to Responses->Vector Stores)
+\draw[->, thick] ([yshift=-4mm]client.east) -- (13.,10.8) -- (13.,5.45);
+
+
+% Responses API to Prompts API (orthogonal: left then down)
+\draw[->, thick] (responses.west) -- (0,8.5) -- (prompts.north);
+\node[lab] at (0.6,8.1) {Read};
+
+% Responses API to Conversations API (orthogonal: left then down)
+\draw[->, thick] (responses.west) -- (4.2,8.5) -- (convos.north);
+\node[lab] at (4.2,8.1) {Read/Write};
+
+
+
+% Responses API to Tools (Tool Call - green arrow: right, around Search API, down to Tools)
+\draw[->, ToolGreen, thick, rounded corners=8pt] (responses.east) -- (19,8.5) -- (19,-0.8) -- (17.3,-0.8);
+\node[font=\bfseries, text=ToolGreen, anchor=south] at (11,8.5) {Tool Call};
+
+% Files API to Vector Stores API (horizontal)
+\draw[->, thick] (files.east) -- node[lab, above] {Read} (vectors.west);
+
+% File Processor to Files API (from left side, orthogonal: left then up to Files)
+\draw[->, dashed, thick] (fp.west) -- (8,2.5) -- (files.south);
+\node[lab] at (7.3,2.8) {Read};
+
+% File Processor to Vector Stores API (from right side, orthogonal: right then up to Vectors)
+\draw[->, dashed, thick] (fp.east) -- (13,2.5) -- (vectors.south);
+\node[lab] at (13.7,2.8) {Write};
+
+% Vector Stores to Search API (horizontal)
+\draw[->, thick] (vectors.east) -- node[lab, above] {Read} (search.west);
+
+% Search API to File Search (red dashed line with 90-degree angles)
+\draw[->, red, dashed, thick] (search.south) -- (17.5,3) -- (15.9,3) -- (tFileS.north);
+
+\end{tikzpicture}%
+}
+\caption{Llama Stack's Responses surface area and its relation to other APIs, providers, and tools.}
+\Description{Diagram showing the OpenAI Responses API architecture with client, inference providers, file and vector store providers, file processor, and tools.}
+\label{fig:openai-responses-api}
+\end{figure*}
 Results are persisted through a responses store backed by an authorized SQL layer so that rows are tagged with owner and access attributes and filtered on read by the default ABAC policy.
 Streaming events expose reasoning, tool calls, and text deltas, giving operators and auditors fine-grained visibility into agent behavior without requiring client-side instrumentation.
 
