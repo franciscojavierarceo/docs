@@ -196,7 +196,7 @@ The three data-path layers are:
 
 \textbf{Layer 2: Retrieval gating.} Two-tier enforcement: resource-level authorization before search and chunk-level filtering after retrieval, composing similarity search with authorization predicates.
 
-\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O(N \cdot M)$ to $O(M)$, where $N$ is the number of tenants and $M$ is the number of model endpoints.
+\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O$($N \cdot M$) to $O$($M$), where $N$ is the number of tenants and $M$ is the number of model endpoints.
 
 The following subsections detail each layer.
 
