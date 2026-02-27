@@ -110,7 +110,7 @@ Autonomous agents require flexible tool access and multi-turn reasoning capabili
 
 Standard agentic AI deployments exhibit security assumptions incompatible with enterprise multitenancy:
 \begin{enumerate}
-  \item \textbf{Client-side orchestration:} the application manages the inference---tool---inference loop, distributing security-critical logic to potentially untrusted clients and increasing operational complexity~\cite{amershi2019se4ml}.
+  \item \textbf{Client-side orchestration:} the application manages the inference $\rightarrow$ tool $\rightarrow$ inference loop, distributing security-critical logic to potentially untrusted clients and increasing operational complexity~\cite{amershi2019se4ml}.
   \item \textbf{Homogeneous data access:} retrieval stacks assume uniform access to a corpus; retrieval methods (whether dense, sparse, or hybrid) optimize relevance ranking rather than authorization~\cite{karpukhin2020dpr}.
   \item \textbf{Implicit trust boundaries:} tool execution is often treated as a capability extension without systematic verification of who may invoke tools or consume tool outputs, despite the centrality of tool use in modern agent designs~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
   \item \textbf{Stateless isolation:} requests are treated independently, ignoring how conversation state and cached tool results can leak across boundaries; such hidden couplings are a classic source of ML systems fragility~\cite{sculley2015hiddentechnicaldebt}.
@@ -196,7 +196,7 @@ The three data-path layers are:
 
 \textbf{Layer 2: Retrieval gating.} Two-tier enforcement: resource-level authorization before search and chunk-level filtering after retrieval, composing similarity search with authorization predicates.
 
-\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O(N \cdot M)$ to $O(M)$.
+\textbf{Layer 3: Shared inference.} LLM layer shared across tenants with isolation enforced at input construction, reducing cost from $O$($N \cdot M$) to $O$($M$).
 
 The following subsections detail each layer.
 
@@ -216,7 +216,7 @@ Where the backend supports it, predicate pushdown can enforce filtering efficien
 The LLM inference layer is shared across tenants; the model itself does not require per-tenant isolation, only the context fed to it.
 Because layers 1 and 2 ensure that only authorized documents and tool results enter the prompt, the inference layer can be safely shared.
 At the serving layer, modern systems show that batching, scheduling, and memory management dominate throughput and latency for generative transformers~\cite{yu2022orca,kwon2023vllm}.
-With $N$ tenants and $M$ model endpoints, cost scales as $O(M)$ rather than $O(N \cdot M)$.
+With $N$ tenants and $M$ model endpoints, cost scales as $O$(M) rather than $O$($N$ $\cdot M$).
 
 \section{Server-Side Orchestration as Enforcement Layer}
 \label{sec:server-side}
