@@ -380,7 +380,7 @@ Internally, the implementation converts request input to chat messages and runs 
   >=Latex,
   line cap=round,
   box/.style={rounded corners=6pt, minimum height=10mm, align=center, draw=black, fill=white, line width=0.8pt},
-  boxSpec/.style={box, draw=SpecBlue, text=SpecBlue, fill=white, line width=1.2pt},
+  boxSpec/.style={box, draw=SpecBlue, text=black, fill=white, line width=1.2pt},
   boxKnown/.style={box, fill=KnownBlue, draw=SpecBlue!70!black, text=black, line width=1pt},
   boxRed/.style={box, fill=UnknownRed, draw=black, text=black, line width=1pt},
   providerGroup/.style={draw=black, dashed, rounded corners=8pt, inner sep=4mm,
@@ -391,7 +391,7 @@ Internally, the implementation converts request input to chat messages and runs 
 ]
 
 % Title
-\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{OpenAI Responses API}};
+\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Llama Stack Responses Implementation}};
 
 % OpenAI Client
 \node[box, minimum width=32mm] (client) at (8,11.2) {OpenAI Client};
@@ -461,11 +461,11 @@ Internally, the implementation converts request input to chat messages and runs 
 \node[tool] (tMcp)   at (10.75,-0.2) {Remote MCP};
 \node[tool] (tWeb)   at (13.3,-0.2) {Web Search};
 \node[tool] (tFileS) at (15.9,-0.2) {File Search};
-% Bottom row - centered within the Tools box
-\node[tool, minimum width=24mm] (tCI)    at (7.5,-1.4) {Code Interpreter};
-\node[tool, minimum width=22mm] (tCU)    at (9.8,-1.4) {Computer use};
-\node[tool, minimum width=20mm] (tPatch) at (12.1,-1.4) {Apply patch};
-\node[tool, minimum width=18mm] (tShell) at (14.2,-1.4) {Shell};
+% Bottom row - evenly spaced within the Tools box
+\node[tool, minimum width=24mm] (tCI)    at (7,-1.4) {Code Interpreter};
+\node[tool, minimum width=22mm] (tCU)    at (9.5,-1.4) {Computer use};
+\node[tool, minimum width=20mm] (tPatch) at (11.8,-1.4) {Apply patch};
+\node[tool, minimum width=18mm] (tShell) at (13.9,-1.4) {Shell};
 
 % Arrows
 % Client to Responses API (main red arrow)
@@ -475,10 +475,10 @@ Internally, the implementation converts request input to chat messages and runs 
 \draw[->, thick] ([yshift=-4mm]client.west) -- (4.5,10.8) -- (4.5,5.5);
 
 % Client to Search API (direct connection with 90-degree angle, parallel to Responses->Search)
-\draw[->, thick] ([yshift=-4mm]client.east) -- (17.8,10.8) -- (17.8,5.51);
+\draw[->, thick] ([yshift=-4mm]client.east) -- (17.5,10.8) -- (17.5,5.51);
 
 % Client to Vector Stores API (direct connection with 90-degree angle, parallel to Responses->Vector Stores)
-\draw[->, thick] ([yshift=-4mm]client.east) -- (13.3,10.8) -- (13.3,5.45);
+\draw[->, thick] ([yshift=-4mm]client.east) -- (13.,10.8) -- (13.,5.45);
 
 
 % Responses API to Prompts API (orthogonal: left then down)
@@ -492,8 +492,8 @@ Internally, the implementation converts request input to chat messages and runs 
 
 
 % Responses API to Tools (Tool Call - green arrow: right, around Search API, down to Tools)
-\draw[->, ToolGreen, line width=2pt, rounded corners=8pt] ([yshift=2mm]responses.east) -- (19,8.7) -- (19,-0.8) -- (17.3,-0.8);
-\node[font=\bfseries, text=ToolGreen, anchor=south] at (14,8.7) {Tool Call};
+\draw[->, ToolGreen, thick, rounded corners=8pt] (responses.east) -- (19,8.5) -- (19,-0.8) -- (17.3,-0.8);
+\node[font=\bfseries, text=ToolGreen, anchor=south] at (11,8.5) {Tool Call};
 
 % Files API to Vector Stores API (horizontal)
 \draw[->, thick] (files.east) -- node[lab, above] {Read} (vectors.west);
@@ -514,7 +514,7 @@ Internally, the implementation converts request input to chat messages and runs 
 
 \end{tikzpicture}%
 }
-\caption{OpenAI Responses API relationships to related APIs, providers, and tools.}
+\caption{Llama Stack's Responses API surface are and its relation to other APIs, providers, and tools.}
 \Description{Diagram showing the OpenAI Responses API architecture with client, inference providers, file and vector store providers, file processor, and tools.}
 \label{fig:openai-responses-api}
 \end{figure*}
