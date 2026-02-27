@@ -372,6 +372,26 @@ Llama Stack implements the Responses API not only as an agentic execution endpoi
 The core endpoint supports creating responses (executing an agent), retrieving, listing, inspecting input items, and deleting responses, in both streaming and non-streaming modes.
 Internally, the implementation converts request input to chat messages and runs the inference---tool loop via a streaming orchestrator or a synchronous path. Built-in tools (\texttt{file\_search}, \texttt{web\_search}, MCP) are resolved and executed server-side during this loop.
 
+The implementation provides vendor-neutral abstractions where third-party providers can be supported through Llama Stack's pluggable architecture. This enables organizations to use different providers for each capability based on their requirements, avoiding vendor lock-in while maintaining consistent interfaces. The key APIs and their relationships include:
+
+\begin{itemize}
+  \item \textbf{Responses API:} The central orchestration endpoint that unifies multi-turn conversations, tool calling, and agentic execution. Implements OpenAI's Responses API paradigm~\cite{openaiResponsesAPI} with server-side state management and policy enforcement.
+
+  \item \textbf{Conversations API:} Manages multi-turn conversation state and history with tenant isolation. Handles conversation persistence, retrieval, and access control, ensuring that conversation context remains within appropriate authorization boundaries across turns.
+
+  \item \textbf{Search API:} Provides unified search capabilities across multiple retrieval modalities including vector search, keyword matching, and hybrid approaches. Integrates with Vector Stores API and supports structured filtering for tenant isolation and policy enforcement at retrieval time.
+
+  \item \textbf{Vector Stores API:} Abstracts vector database operations across multiple providers including Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, and sqlite-vec. Supports both dense vector search and hybrid retrieval with metadata-based filtering for multitenant isolation.
+
+  \item \textbf{Files API:} Manages file storage and retrieval with support for multiple backend providers including cloud storage (Google Cloud Storage, AWS S3), distributed storage (Persistent Volume Claims), and local storage. Provides tenant-scoped file access with ABAC policy enforcement.
+
+  \item \textbf{File Search Tool:} Implements semantic search over document collections by combining the Files API with vector-based retrieval through the Search API. Enables agents to query enterprise document repositories with tenant isolation and access control.
+
+  \item \textbf{Tools:} Extensible tool execution framework supporting both built-in tools (image generation, function calling, web search, file search, code interpreter, computer use) and external tools via Model Context Protocol (MCP). All tool execution occurs server-side with authorization validation and audit logging.
+
+  \item \textbf{Prompts API:} Manages prompt templates and configurations, though prompt creation currently requires access to the administrative interface rather than being fully programmable via API.
+\end{itemize}
+
 \begin{figure*}[t]
 \centering
 \resizebox{\textwidth}{!}{%
