@@ -54,7 +54,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. This approach centralizes security-critical operations---tool execution authorization, state isolation, and policy enforcement---on the server, creating natural enforcement points for multitenant isolation while allowing client-side frameworks to retain control over agent composition and latency-sensitive operations.
 
-We validate the proposed architecture through an open sourced implementation in Llama Stack---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrating that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure.
+We validate the proposed architecture through an open sourced implementation in Llama Stack\footnote{\url{https://github.com/meta-llama/llama-stack}}---a vendor-neutral framework realizing the Responses API paradigm with server-side multi-turn orchestration---demonstrating that secure multitenancy, cost-efficient resource sharing, and autonomous agent capabilities are simultaneously achievable on shared infrastructure.
 \end{abstract}
 
 \begin{CCSXML}
@@ -227,7 +227,7 @@ This section examines the limitations of purely client-side orchestration for mu
 
 \subsection{Limitations of client-side orchestration}
 Client-side orchestration offers important advantages: low latency for local tool calls, flexibility in composing custom agent logic, and the ability to leverage rich client-side frameworks. However, in multitenant enterprise settings, purely client-side patterns introduce specific shortcomings.
-When the client controls the inference---tool---inference loop, a compromised or buggy client can skip retrieval filters, invoke unauthorized tools, or accumulate cross-tenant context.
+When the client controls the inference $\rightarrow$ tool $\rightarrow$ inference loop, a compromised or buggy client can skip retrieval filters, invoke unauthorized tools, or accumulate cross-tenant context.
 Client-side orchestration expands the TCB to include untrusted client code, so server-side security invariants cannot be enforced from the server alone.
 This is consistent with broader findings that ML systems become fragile when critical invariants are distributed across components without clear ownership or enforcement points~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
@@ -261,7 +261,7 @@ In practice, hybrid architectures are likely to emerge as the dominant pattern: 
   \end{figure}
 
 \subsection{Enforcement points}
-Table~\ref{tab:enforcement} maps each shortcoming from Section~\ref{sec:challenges-solutions} to the enforcement point that mitigates it.
+Figure~\ref{fig:orchestration-flow} illustrates this server-side execution model where every step—from request processing through tool execution to response storage—occurs within the server trust boundary. Table~\ref{tab:enforcement} maps each shortcoming from Section~\ref{sec:challenges-solutions} to the enforcement point that mitigates it.
 
 \begin{table}[!htbp]
   \centering
@@ -390,7 +390,7 @@ The implementation provides vendor-neutral abstractions where third-party provid
 
   \item \textbf{Tools:} Extensible tool execution framework supporting both built-in tools (image generation, function calling, web search, file search, code interpreter, computer use) and external tools via Model Context Protocol (MCP). All tool execution occurs server-side with authorization validation and audit logging.
 
-  \item \textbf{Prompts API:} Manages prompt templates and configurations, though prompt creation currently requires access to the administrative interface rather than being fully programmable via API.
+  \item \textbf{Prompts API:} Manages prompt templates and configurations with full programmatic access via API.
 \end{itemize}
 
 \begin{figure*}[t]
