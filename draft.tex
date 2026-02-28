@@ -1,4 +1,4 @@
-\documentclass[sigconf]{acmart}
+\documentclass[sigconf,anonymous]{acmart}
 % Remove/adjust for your submission venue as needed.
 % \settopmatter{printacmref=false} % Removes ACM Reference Format
 % \renewcommand\footnotetextcopyrightpermission[1]{} % removes copyright text
@@ -134,7 +134,7 @@ This paper makes the following contributions:
 
   \item We argue that server-side orchestration provides a natural enforcement layer for security-critical operations---centralizing authorization, state isolation, and audit logging---while client-side frameworks retain control over agent composition, enabling hybrid architectures that reduce the trusted computing base without sacrificing flexibility~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}.
 
-  \item We validate the proposed architecture through an implementation in Llama Stack~\cite{llamastack}, an open-source, vendor-neutral framework with Kubernetes deployment via an operator~\cite{llamastackk8soperator,burns2016borg}, demonstrating the feasibility of secure multitenant agentic RAG on shared infrastructure with pluggable models, vector stores, and tools.
+  \item We validate the proposed architecture through an implementation in Llama Stack~\cite{llamastack}, an open-source, vendor-neutral framework with Kubernetes deployment via an operator~\cite{llamastackk8soperator}, demonstrating the feasibility of secure multitenant agentic RAG on shared infrastructure with pluggable models, vector stores, and tools.
 \end{enumerate}
 
 \paragraph{Primary sources.}
