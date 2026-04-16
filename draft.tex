@@ -8,6 +8,8 @@
 \usepackage{booktabs}
 \usepackage{url}
 \usepackage{xcolor}
+\usepackage{caption}
+\usepackage{enumitem}
 \usepackage{tikz}
 \usetikzlibrary{
   patterns,
@@ -522,6 +524,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 %%  APPENDIX
 %% ============================================================
 \appendix
+\clearpage
 
 \section{Detailed Evaluation Tables}
 \label{sec:eval-tables}
@@ -630,14 +633,12 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 \end{table}
 
 
-\clearpage
 \onecolumn
 \section{API and Provider Details}
 \label{sec:api-details}
 
-\begin{figure}[h]
-\centering
-\resizebox{\textwidth}{!}{%
+\begin{center}
+\resizebox{0.85\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\sffamily,
   >=Latex,
@@ -654,7 +655,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 ]
 
 % Title
-\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Responses API Surface Area}};
+\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Llama Stack Responses Implementation}};
 
 % OpenAI Client
 \node[box, minimum width=32mm] (client) at (8,11.2) {OpenAI Client};
@@ -739,7 +740,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 \node[lab] at (0.6,8.1) {Read};
 \draw[->, thick] (responses.west) -- (4.2,8.5) -- (convos.north);
 \node[lab] at (4.2,8.1) {Read/Write};
-\draw[->, thick] (responses.west) -- (2,8.5) -- (2,3.5) -- (compact.north);
+\draw[->, thick] (responses.west) -- (2,8.5) -- (compact.north);
 \node[lab] at (2.6,6.5) {Compact};
 \draw[<->, thick] (compact.east) -- (4.2,3) -- (convos.south);
 \node[lab] at (4.2,2.7) {Read/Write};
@@ -755,42 +756,24 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 
 \end{tikzpicture}%
 }
-\caption{Responses API surface area and its relation to other APIs, providers, and tools. The Responses API serves as the central orchestration endpoint, coordinating inference, tool execution, state management, and context compaction.}
+\captionof{figure}{Responses API surface area and its relation to other APIs, providers, and tools. The Responses API serves as the central orchestration endpoint, coordinating inference, tool execution, state management, and context compaction.}
 \Description{Diagram showing the Responses API architecture with client, inference providers, compaction, file and vector store providers, file processor, and tools.}
 \label{fig:openai-responses-api}
-\end{figure}
+\end{center}
 
 Figure~\ref{fig:openai-responses-api} illustrates the complete Responses API surface area and the interconnections between APIs, providers, and tools.
-
-\twocolumn
 Llama Stack implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies. The key APIs include:
 
-\begin{itemize}
-  \item \textbf{Responses API:} Central orchestration endpoint unifying multi-turn conversations, tool calling, and agentic execution via the OpenAI Responses API paradigm~\cite{openaiResponsesAPI}.
-
-  \item \textbf{Inference API:} Chat completions and embeddings with OpenAI-compatible endpoints, supporting streaming, structured output, and tool use.
-
-  \item \textbf{Vector Stores and Search APIs:} Vector store management and unified search across dense, sparse, and hybrid retrieval modalities with structured metadata filtering for tenant isolation.
-
-  \item \textbf{Conversations API:} Multi-turn conversation state with tenant isolation, ensuring context remains within authorization boundaries across turns.
-
-  \item \textbf{Compaction API:} Context management for long conversations. When token count exceeds a configurable threshold, compaction summarizes conversation history via inference while preserving user messages verbatim, then feeds the compacted context back as input. Supports both explicit compaction (\texttt{POST /v1/responses/compact}) and automatic compaction via the \texttt{context\_management} parameter on response creation.
-
+\begin{itemize}[nosep]
+  \item \textbf{Responses API:} Central orchestration endpoint for multi-turn conversations, tool calling, and agentic execution~\cite{openaiResponsesAPI}.
+  \item \textbf{Vector Stores and Search APIs:} Dense, sparse, and hybrid retrieval with structured metadata filtering for tenant isolation.
+  \item \textbf{Conversations API:} Multi-turn conversation state with tenant-scoped isolation.
+  \item \textbf{Compaction API:} Context management for long conversations. Summarizes history via inference when token count exceeds a threshold, preserving user messages verbatim. Supports explicit (\texttt{POST /v1/responses/compact}) and automatic modes.
   \item \textbf{Prompts API:} Versioned prompt template management with tenant-scoped access control.
-
-  \item \textbf{Files and File Processors APIs:} File storage with backend support for cloud storage (GCS, S3), distributed storage (PVCs), and local storage, with tenant-scoped ABAC enforcement. File processors handle parsing and chunking for ingestion into vector stores.
-
-  \item \textbf{Safety API:} Input and output content moderation via configurable shield providers.
-
-  \item \textbf{Tools:} Extensible tool execution supporting built-in tools (file search, web search, code interpreter, image generation, computer use) and external tools via MCP~\cite{mcp}. All server-side tool execution occurs with authorization and audit logging.
-
-  \item \textbf{Telemetry API:} Structured logging, tracing, and metrics for observability and compliance auditing.
-
-  \item \textbf{Batches API:} Asynchronous batch processing for high-throughput workloads.
-
-  \item \textbf{Compatibility layers:} Anthropic Messages API and Google Interactions API compatibility for multi-provider portability.
+  \item \textbf{Files and File Processors APIs:} Tenant-scoped file storage (GCS, S3, PVCs, local) with parsing and chunking for vector store ingestion.
+  \item \textbf{Tools:} Built-in tools (file search, web search, code interpreter, image generation, computer use) and external tools via MCP~\cite{mcp}.
 \end{itemize}
 
-\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, and OpenAI (remote). Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple Llama Stack instances referencing the same providers while maintaining logical isolation through ABAC.
+\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, OpenAI, Anthropic, Azure, AWS Bedrock, Databricks, Gemini, Together, NVIDIA, and WatsonX. Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple Llama Stack instances referencing the same providers while maintaining logical isolation through ABAC.
 
 \end{document}
