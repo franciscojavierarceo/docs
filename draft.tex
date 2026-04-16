@@ -85,6 +85,9 @@ We validate the proposed architecture through an open-source implementation in L
 %%  SECTION 1: INTRODUCTION (minor updates to contributions)
 %% ============================================================
 \section{Introduction}
+
+Enterprise adoption of agentic AI introduces security challenges that existing architectures do not address. We motivate the problem, formalize it, and summarize our contributions.
+
 \subsection{Motivation}
 Enterprise adoption of generative AI has evolved beyond simple prompt-response interactions toward agentic systems---AI applications that autonomously reason, use tools, retrieve information, and execute multi-step workflows to accomplish complex tasks~\cite{yao2023react,schick2023toolformer,karpas2022mrkl}.
 This evolution reflects a fundamental shift: rather than treating large language models (LLMs) as sophisticated text generators, organizations now deploy them as reasoning engines capable of taking actions in the world.
@@ -142,6 +145,9 @@ This paper makes the following contributions:
 %%  SECTION 2: BACKGROUND (unchanged)
 %% ============================================================
 \section{Background}
+
+We trace the evolution of LLM application architectures to show how each phase introduced new capabilities but also inherited the security gaps of prior phases.
+
 \subsection{The evolution of LLM application architectures}
 LLM application architectures have evolved through distinct phases, each introducing new capabilities and security considerations.
 \textbf{Completion APIs} exposed simple prompt\,$\rightarrow$\,text interfaces with perimeter-oriented security.
@@ -228,29 +234,23 @@ This relies on assumption~A3: the architecture secures \emph{context constructio
   \centering
   \resizebox{\columnwidth}{!}{%
   \begin{tikzpicture}[
-    layer/.style={draw, rounded corners=4pt, minimum width=72mm, minimum height=11mm,
+    layer/.style={draw, rounded corners=4pt, minimum width=72mm, minimum height=16mm,
                   align=center, font=\small\bfseries},
-    sublabel/.style={font=\scriptsize, text=black!70},
     arrow/.style={-{Stealth[length=2mm]}, thick},
     every node/.style={inner sep=3pt}
   ]
-    % Layers (bottom to top)
-    \node[layer, fill=KnownBlue!40] (L1) {Layer 1: Policy-Aware Ingestion};
-    \node[layer, fill=ToolsPurple!40, above=5mm of L1] (L2) {Layer 2: Retrieval Gating};
-    \node[layer, fill=ToolYellow!60, above=5mm of L2] (L3) {Layer 3: Shared Inference};
+    % Layers (bottom to top) — sub-labels inside each box
+    \node[layer, fill=KnownBlue!40] (L1) {Layer 1: Policy-Aware Ingestion\\[-1pt]{\scriptsize\normalfont $\mathcal{I}(d,t) \rightarrow D_t$ · tenant metadata at ingest}};
+    \node[layer, fill=ToolsPurple!40, above=10mm of L1] (L2) {Layer 2: Retrieval Gating\\[-1pt]{\scriptsize\normalfont ABAC + metadata filters · predicate pushdown}};
+    \node[layer, fill=ToolYellow!60, above=10mm of L2] (L3) {Layer 3: Shared Inference\\[-1pt]{\scriptsize\normalfont shared model, tenant-scoped context}};
 
-    % Sub-labels
-    \node[sublabel, below=0.5mm of L1.south] (L1s) {$\mathcal{I}(d,t) \rightarrow D_t$ \quad tenant metadata at ingest};
-    \node[sublabel, below=0.5mm of L2.south] (L2s) {ABAC + metadata filters \quad predicate pushdown};
-    \node[sublabel, below=0.5mm of L3.south] (L3s) {shared model, tenant-scoped context};
-
-    % Arrows between layers
-    \draw[arrow] (L1) -- node[right, font=\scriptsize] {tagged chunks} (L2);
-    \draw[arrow] (L2) -- node[right, font=\scriptsize] {authorized context} (L3);
+    % Arrows between layers with labels
+    \draw[arrow] (L1) -- node[right, font=\scriptsize, xshift=1mm] {tagged chunks} (L2);
+    \draw[arrow] (L2) -- node[right, font=\scriptsize, xshift=1mm] {authorized context} (L3);
 
     % Server-side orchestration bracket
     \node[draw=ToolGreen, very thick, rounded corners=6pt, dashed,
-          fit=(L1)(L1s)(L2)(L2s)(L3)(L3s),
+          fit=(L1)(L2)(L3),
           inner xsep=6mm, inner ysep=4mm,
           label={[font=\small\bfseries, text=ToolGreen]above:Server-Side Orchestration}] (orch) {};
 
@@ -484,6 +484,8 @@ Server-side orchestration adds ${\sim}$3s total latency vs.\ client-side due to 
 \section{Discussion and Conclusion}
 \label{sec:discussion}
 
+We discuss the scope of the architecture, its trade-offs, and position relative to related work.
+
 \subsection{When not to use this architecture}
 This architecture is unnecessary for single-tenant deployments, public data, organizations already enforcing per-tenant infrastructure isolation, or teams that prefer a fully managed SaaS product over self-hosted infrastructure. Client-side orchestration achieves ${\sim}$2$\times$ the throughput at high concurrency for latency-sensitive workloads where all tenants are trusted. The framework is deployed in production across enterprises in telecommunications, semiconductor manufacturing, financial services, insurance, and consulting; the evaluation in this paper uses a synthetic testbed for reproducibility and controlled comparison.
 
@@ -523,11 +525,9 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 
 \section{Detailed Evaluation Tables}
 \label{sec:eval-tables}
-
-\subsection{Latency}
 \label{sec:latency-tables}
 
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{ll|rrr}
@@ -544,7 +544,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   \label{tab:latency}
 \end{table}
 
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{l|rrr}
@@ -562,9 +562,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   \label{tab:gpu-overhead}
 \end{table}
 
-\subsection{Throughput}
-
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{ll|rrrr}
@@ -581,9 +579,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   \label{tab:throughput}
 \end{table}
 
-\subsection{Prompt injection probes}
-
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{ll|rrr}
@@ -600,9 +596,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   \label{tab:injection}
 \end{table}
 
-\subsection{Predicate pushdown scaling}
-
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{r|rrr}
@@ -619,9 +613,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   \label{tab:pushdown}
 \end{table}
 
-\subsection{Retrieval quality (synthetic embeddings)}
-
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{l|rrr}
@@ -638,6 +630,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 \end{table}
 
 
+\clearpage
 \section{API and Provider Details}
 \label{sec:api-details}
 
