@@ -213,7 +213,7 @@ We define the scope of adversaries and assumptions under which the architecture 
 \subsection{Data path: layered isolation}
 \label{sec:data-path}
 To address the security challenges, we propose a two-part solution.
-A three-layer isolation architecture secures the \emph{data path}: how documents are ingested, retrieved, and fed to the model.
+A three-layer isolation architecture secures the \emph{data path}: how documents are ingested, retrieved, and fed to the model (Figure~\ref{fig:isolation-layers}).
 Server-side orchestration secures the \emph{control path}: how tools are invoked, state is managed across turns, and policies are enforced (Section~\ref{sec:control-path}).
 
 \textbf{Layer 1: Policy-aware ingestion.} Tenant metadata attached at ingestion: $\mathcal{I}(d, t) \rightarrow D_t$ tags document $d$ with tenant $t$'s attributes. This ensures every chunk inherits ownership metadata, so downstream retrieval and authorization operate on consistent tenant attributes. Attaching metadata at ingestion rather than retrofitting it reduces the risk of accidental cross-tenant coupling~\cite{sculley2015hiddentechnicaldebt}.
@@ -223,6 +223,53 @@ Server-side orchestration secures the \emph{control path}: how tools are invoked
 \textbf{Layer 3: Shared inference.} The LLM inference layer is shared across tenants; the model itself does not require per-tenant isolation, only the context fed to it. Because Layers~1 and~2 ensure that only authorized documents enter the prompt, the inference layer can be safely shared, reducing cost from $O$($N \cdot M$) to $O$($M$) where $N$ is the number of tenants and $M$ is the number of model endpoints.
 
 This relies on assumption~A3: the architecture secures \emph{context construction}, not parametric memory. A model may generate information absorbed during pretraining regardless of retrieval gating. Per-tenant model instances can provide full parametric isolation but require deploying a separate model for each tenant, which is costly and impractical at scale. At the serving layer, modern systems show that batching, scheduling, and memory management dominate throughput and latency for generative transformers~\cite{yu2022orca,kwon2023vllm}.
+
+\begin{figure}[!htbp]
+  \centering
+  \resizebox{\columnwidth}{!}{%
+  \begin{tikzpicture}[
+    layer/.style={draw, rounded corners=4pt, minimum width=72mm, minimum height=11mm,
+                  align=center, font=\small\bfseries},
+    sublabel/.style={font=\scriptsize, text=black!70},
+    arrow/.style={-{Stealth[length=2mm]}, thick},
+    every node/.style={inner sep=3pt}
+  ]
+    % Layers (bottom to top)
+    \node[layer, fill=KnownBlue!40] (L1) {Layer 1: Policy-Aware Ingestion};
+    \node[layer, fill=ToolsPurple!40, above=5mm of L1] (L2) {Layer 2: Retrieval Gating};
+    \node[layer, fill=ToolYellow!60, above=5mm of L2] (L3) {Layer 3: Shared Inference};
+
+    % Sub-labels
+    \node[sublabel, below=0.5mm of L1.south] (L1s) {$\mathcal{I}(d,t) \rightarrow D_t$ \quad tenant metadata at ingest};
+    \node[sublabel, below=0.5mm of L2.south] (L2s) {ABAC + metadata filters \quad predicate pushdown};
+    \node[sublabel, below=0.5mm of L3.south] (L3s) {shared model, tenant-scoped context};
+
+    % Arrows between layers
+    \draw[arrow] (L1) -- node[right, font=\scriptsize] {tagged chunks} (L2);
+    \draw[arrow] (L2) -- node[right, font=\scriptsize] {authorized context} (L3);
+
+    % Server-side orchestration bracket
+    \node[draw=ToolGreen, very thick, rounded corners=6pt, dashed,
+          fit=(L1)(L1s)(L2)(L2s)(L3)(L3s),
+          inner xsep=6mm, inner ysep=4mm,
+          label={[font=\small\bfseries, text=ToolGreen]above:Server-Side Orchestration}] (orch) {};
+
+    % Trust boundary
+    \begin{scope}[on background layer]
+      \node[draw=red!70!black, very thick, dotted, rounded corners=8pt,
+            fit=(orch),
+            inner sep=4mm,
+            label={[font=\small\bfseries, text=red!70!black]below:Trust Boundary (server process)}] {};
+    \end{scope}
+
+    % Client arrow
+    \node[font=\small, left=12mm of L3] (client) {Client};
+    \draw[arrow] (client) -- (L3.west);
+  \end{tikzpicture}%
+  }
+  \caption{Layered isolation architecture with server-side orchestration. All three layers execute within the server trust boundary; the client controls \emph{what} to ask but not \emph{how} retrieval and tool execution are performed.}
+  \label{fig:isolation-layers}
+\end{figure}
 
 \subsection{Control path: server-side orchestration}
 \label{sec:control-path}
@@ -299,7 +346,7 @@ Llama Stack~\cite{llamastack} provides an open-source implementation of the arch
 
 Llama Stack defines over 20 APIs covering the full lifecycle of agentic applications. These span core capabilities---inference, agents (Responses API), vector stores and search, safety, tool runtime, and telemetry---as well as resource management APIs for models, files, file processors, prompts, conversations, connectors, and tool groups. The framework also provides compatibility layers for third-party API paradigms. Each API is designed with multitenancy as a first-class concern, enabling tenant-scoped resource management and access control. A complete API listing is provided in Appendix~\ref{sec:api-details}.
 
-The Responses API---implementing the OpenAI Responses API paradigm~\cite{openaiResponsesAPI}---is the central orchestration endpoint. Unlike chat completion APIs that terminate after a single inference call, a single Responses API request may trigger multiple inference calls, tool executions, safety checks, and state transitions before producing a final response. All such operations execute within the server boundary: conversation state is retrieved and persisted server-side, tools are invoked under centralized authorization, and safety guardrails are applied at each step.
+The Responses API---implementing the OpenAI Responses API paradigm~\cite{openaiResponsesAPI}---is the central orchestration endpoint (Figure~\ref{fig:openai-responses-api}). Unlike chat completion APIs that terminate after a single inference call, a single Responses API request may trigger multiple inference calls, tool executions, safety checks, and state transitions before producing a final response. All such operations execute within the server boundary: conversation state is retrieved and persisted server-side, tools are invoked under centralized authorization, and safety guardrails are applied at each step.
 
 The Vector Stores and Search APIs provide uniform access to multiple retrieval modalities---dense vector search, keyword matching, and hybrid pipelines---with structured metadata filtering for tenant isolation. The Prompts API enables versioned prompt management, and the Conversations API maintains tenant-scoped multi-turn state. Together, these APIs provide the OpenAI-compatible interface through which the architecture's security guarantees are delivered: clients interact with standard endpoints (\texttt{/v1/responses}, \texttt{/v1/vector\_stores}, \texttt{/v1/chat/completions}) while the server enforces ABAC policies transparently.
 
@@ -411,6 +458,8 @@ The headline result: \textbf{gating is the security mechanism}. Without it, near
 
 A natural question is why server-side orchestration matters if client-side gating (Config~B) also achieves CTLR=0\%. The answer is the trust boundary: Config~B's security depends on the client faithfully calling the gated endpoint. A compromised client can skip gated search, call an ungated endpoint, or manipulate tool invocations---reverting to Config~A's 100\% leakage. Server-side orchestration (Config~D) moves enforcement inside the server, where the client controls \emph{what} to ask but not \emph{how} retrieval and tool execution are performed. Gating provides the security guarantee; server-side orchestration provides the enforcement guarantee (G2).
 
+\textbf{Formal security claims.} Under assumptions A1--A4 (Section~\ref{sec:threat-model}), the architecture guarantees CTLR=0 and AVR=0 for any query workload: authorized queries return only permitted documents, and cross-tenant probes return no unauthorized data. The architecture does not protect against model prior knowledge leakage, side-channel attacks, or a compromised server process---these are explicitly out of scope.
+
 \textbf{Prompt injection resilience.} Under gated configurations, all 90 injection probes achieve 0\% leakage. The defense operates at the retrieval layer: the ABAC policy prevents the vector store from returning unauthorized documents regardless of prompt content. Under ungated configurations, 62--80\% of probes retrieve cross-tenant data through normal relevance-based retrieval.
 
 \subsection{Performance results}
@@ -436,7 +485,7 @@ Server-side orchestration adds ${\sim}$3s total latency vs.\ client-side due to 
 \label{sec:discussion}
 
 \subsection{When not to use this architecture}
-This architecture is unnecessary for single-tenant deployments, public data, organizations already enforcing per-tenant infrastructure isolation, or teams that prefer a fully managed SaaS product over self-hosted infrastructure. Client-side orchestration achieves ${\sim}$2$\times$ the throughput at high concurrency for latency-sensitive workloads where all tenants are trusted.
+This architecture is unnecessary for single-tenant deployments, public data, organizations already enforcing per-tenant infrastructure isolation, or teams that prefer a fully managed SaaS product over self-hosted infrastructure. Client-side orchestration achieves ${\sim}$2$\times$ the throughput at high concurrency for latency-sensitive workloads where all tenants are trusted. The framework is deployed in production across enterprises in telecommunications, semiconductor manufacturing, financial services, insurance, and consulting; the evaluation in this paper uses a synthetic testbed for reproducibility and controlled comparison.
 
 \subsection{Design trade-offs}
 
@@ -619,5 +668,125 @@ Llama Stack implements the Responses API not only as an agentic execution endpoi
 \end{itemize}
 
 \noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, and OpenAI (remote). Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple Llama Stack instances referencing the same providers while maintaining logical isolation through ABAC.
+
+\noindent Figure~\ref{fig:openai-responses-api} illustrates the complete Responses API surface area and the interconnections between APIs, providers, and tools.
+
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\sffamily,
+  >=Latex,
+  line cap=round,
+  box/.style={rounded corners=6pt, minimum height=10mm, align=center, draw=black, fill=white, line width=0.8pt},
+  boxSpec/.style={box, draw=SpecBlue, text=black, fill=white, line width=1.2pt},
+  boxKnown/.style={box, fill=KnownBlue, draw=SpecBlue!70!black, text=black, line width=1pt},
+  boxRed/.style={box, fill=UnknownRed, draw=black, text=black, line width=1pt},
+  providerGroup/.style={draw=black, dashed, rounded corners=8pt, inner sep=4mm,
+    fill=yellow!12, pattern=north east lines, pattern color=yellow!50!black},
+  tool/.style={rounded corners=6pt, draw=black, fill=ToolYellow, minimum height=9mm,
+    minimum width=24mm, align=center, line width=0.6pt, font=\sffamily\small},
+  lab/.style={font=\footnotesize}
+]
+
+% Title
+\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Responses API Surface Area}};
+
+% OpenAI Client
+\node[box, minimum width=32mm] (client) at (8,11.2) {OpenAI Client};
+
+% Define coordinates for positioning
+\coordinate (responsesPos) at (8,8.5);
+\coordinate (filesPos) at (8,5);
+\coordinate (vectorsPos) at (13,5);
+\coordinate (fpPos) at (10.5,2.5);
+
+% Draw Client to Files API arrow on deepest background layer
+\begin{scope}[on background layer]
+\begin{scope}[on background layer]
+  \draw[->, thick] ([xshift=-3mm]8,11.5) -- ([xshift=-3mm]8,5.5);
+\end{scope}
+\end{scope}
+
+% Draw provider groups on background layer
+\begin{scope}[on background layer]
+  \node[providerGroup, minimum width=44mm, minimum height=22mm] (infGroup) at (responsesPos) {};
+  \node[providerGroup, minimum width=32mm, minimum height=18mm] (filesGroup) at (filesPos) {};
+  \node[providerGroup, minimum width=38mm, minimum height=18mm] (vecGroup) at (vectorsPos) {};
+  \node[providerGroup, minimum width=40mm, minimum height=18mm] (fpGroup) at (fpPos) {};
+\end{scope}
+
+% Inference Providers label
+\node[lab, anchor=south] at ([yshift=11mm]responsesPos) {Inference Providers};
+
+% Draw API boxes on top
+\node[boxSpec, minimum width=32mm, fill=white] (responses) at (responsesPos) {Responses API};
+
+% Middle row APIs
+\node[boxKnown, minimum width=26mm] (prompts) at (0,5) {Prompts API};
+\node[boxSpec, minimum width=32mm] (convos) at (4.2,5) {Conversations API};
+\node[boxSpec, minimum width=24mm, fill=white] (files) at (filesPos) {Files API};
+\node[lab, anchor=south] at ([yshift=1mm]filesGroup.north) {Files Providers};
+\node[boxSpec, minimum width=30mm, fill=white] (vectors) at (vectorsPos) {Vector Stores API};
+\node[lab, anchor=south] at ([yshift=1mm]vecGroup.north) {Vector Store Providers};
+\node[boxSpec, minimum width=24mm] (search) at (17.5,5) {Search API};
+
+% File Processor
+\node[boxRed, minimum width=32mm] (fp) at (fpPos) {File Processor API};
+\node[lab, anchor=south] at ([yshift=1mm]fpGroup.north) {File Processor Providers};
+
+% Legend
+\begin{scope}[on background layer]
+\fill[gray!8, rounded corners=6pt] (-1.8,0.6) rectangle (3.8,-2.2);
+\draw[black, rounded corners=6pt, line width=0.6pt] (-1.8,0.6) rectangle (3.8,-2.2);
+\end{scope}
+\node[boxSpec, minimum width=20mm, minimum height=7mm, anchor=west, fill=white] (legA) at (-1.5,0.1) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legA.east) {OpenAI Spec Available};
+\node[boxKnown, minimum width=20mm, minimum height=7mm, anchor=west] (legB) at (-1.5,-0.8) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legB.east) {Closed Source (Known)};
+\node[boxRed, minimum width=20mm, minimum height=7mm, anchor=west] (legC) at (-1.5,-1.7) {};
+\node[font=\scriptsize, anchor=west] at ([xshift=1mm]legC.east) {Closed Source (Unknown)};
+
+% Tools area
+\begin{scope}[on background layer]
+\fill[ToolsPurple!45, rounded corners=10pt] (4.2,-2.5) rectangle (17.3,1.1);
+\draw[SpecBlue!40!black, rounded corners=10pt, line width=0.8pt] (4.2,-2.5) rectangle (17.3,1.1);
+\end{scope}
+\node[font=\large\bfseries] at (10.75,0.75) {Tools};
+\node[tool] (tImg)   at (5.6,-0.2) {Image Generation};
+\node[tool] (tFunc)  at (8.2,-0.2) {Function Calling};
+\node[tool] (tMcp)   at (10.75,-0.2) {Remote MCP};
+\node[tool] (tWeb)   at (13.3,-0.2) {Web Search};
+\node[tool] (tFileS) at (15.9,-0.2) {File Search};
+\node[tool, minimum width=24mm] (tCI)    at (7,-1.4) {Code Interpreter};
+\node[tool, minimum width=22mm] (tCU)    at (9.5,-1.4) {Computer use};
+\node[tool, minimum width=20mm] (tPatch) at (11.8,-1.4) {Apply patch};
+\node[tool, minimum width=18mm] (tShell) at (13.9,-1.4) {Shell};
+
+% Arrows
+\draw[->, red, line width=1.5pt] (client.south) -- (responses.north);
+\draw[->, thick] ([yshift=-4mm]client.west) -- (4.5,10.8) -- (4.5,5.5);
+\draw[->, thick] ([yshift=-4mm]client.east) -- (17.5,10.8) -- (17.5,5.51);
+\draw[->, thick] ([yshift=-4mm]client.east) -- (13.,10.8) -- (13.,5.45);
+\draw[->, thick] (responses.west) -- (0,8.5) -- (prompts.north);
+\node[lab] at (0.6,8.1) {Read};
+\draw[->, thick] (responses.west) -- (4.2,8.5) -- (convos.north);
+\node[lab] at (4.2,8.1) {Read/Write};
+\draw[->, ToolGreen, thick, rounded corners=8pt] (responses.east) -- (19,8.5) -- (19,-0.8) -- (17.3,-0.8);
+\node[font=\bfseries, text=ToolGreen, anchor=south] at (11,8.5) {Tool Call};
+\draw[->, thick] (files.east) -- node[lab, above] {Read} (vectors.west);
+\draw[->, dashed, thick] (fp.west) -- (8,2.5) -- (files.south);
+\node[lab] at (7.3,2.8) {Read};
+\draw[->, dashed, thick] (fp.east) -- (13,2.5) -- (vectors.south);
+\node[lab] at (13.7,2.8) {Write};
+\draw[->, thick] (vectors.east) -- node[lab, above] {Read} (search.west);
+\draw[->, red, dashed, thick] (search.south) -- (17.5,3) -- (15.9,3) -- (tFileS.north);
+
+\end{tikzpicture}%
+}
+\caption{Responses API surface area and its relation to other APIs, providers, and tools. The Responses API serves as the central orchestration endpoint, coordinating inference, tool execution, and state management.}
+\Description{Diagram showing the Responses API architecture with client, inference providers, file and vector store providers, file processor, and tools.}
+\label{fig:openai-responses-api}
+\end{figure*}
 
 \end{document}
