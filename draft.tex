@@ -34,14 +34,6 @@
 \title{Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
 %\title{Llama Stack: An Open-Source, Vendor-Neutral Architecture for Secure Agentic Systems}
 
-\author{Varsha Prasad}
-\affiliation{%
-  \institution{Red Hat AI}
-  \city{Boston}
-  \country{USA}
-}
-\email{vnarsing@redhat.com}
-
 \author{Francisco Javier Arceo}
 \affiliation{%
   \institution{Red Hat AI}
@@ -49,6 +41,14 @@
   \country{USA}
 }
 \email{farceo@redhat.com}
+
+\author{Varsha Prasad Narsing}
+\affiliation{%
+  \institution{Red Hat AI}
+  \city{Boston}
+  \country{USA}
+}
+\email{vnarsing@redhat.com}
 
 \begin{abstract}
 Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly prevalent in enterprise AI deployments. However, real enterprise environments introduce challenges largely absent from academic treatments and consumer-facing APIs: multiple tenants with heterogeneous data, strict access-control requirements, regulatory compliance, and cost pressures that demand shared infrastructure.
@@ -412,7 +412,7 @@ The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deplo
 \section{Evaluation}
 \label{sec:evaluation}
 
-We evaluate the architecture through six experiments measuring security, systems performance, and retrieval quality. The evaluation uses a 2$\times$2 configuration matrix crossing orchestration mode (client-side vs.\ server-side) against retrieval gating (ungated vs.\ ABAC-gated):
+We evaluate the architecture through six experiments measuring security, systems performance, and retrieval quality. Figure~\ref{fig:evaluation} summarizes the key results. The evaluation uses a 2$\times$2 configuration matrix crossing orchestration mode (client-side vs.\ server-side) against retrieval gating (ungated vs.\ ABAC-gated):
 
 \begin{table}[!htbp]
   \centering
@@ -437,24 +437,14 @@ We evaluate the architecture through six experiments measuring security, systems
 
 \textbf{Metrics.} Cross-Tenant Leakage Rate (CTLR): fraction of cross-tenant probes returning at least one unauthorized chunk. Authorization Violation Rate (AVR): fraction of all API calls returning unauthorized data.
 
-\subsection{Security results}
-
-\begin{table}[!htbp]
+\begin{figure*}[!htbp]
   \centering
-  \small
-  \begin{tabular}{ll|rr}
-  \toprule
-  Config & Orchestration / Retrieval & CTLR & AVR \\
-  \midrule
-  A & Client / Ungated & 100.0\% & 50.0\% \\
-  B & Client / Gated & 0.0\% & 0.0\% \\
-  C & Server / Ungated & 98.3\% & 49.5\% \\
-  D & Server / Gated & 0.0\% & 0.0\% \\
-  \bottomrule
-  \end{tabular}
-  \caption{Security metrics across configurations. Gating eliminates cross-tenant leakage entirely (Configs B and D), validating Equation~(2). Server-side orchestration alone (Config C) does not prevent leakage.}
-  \label{tab:security}
-\end{table}
+  \includegraphics[width=\textwidth]{fig_evaluation.pdf}
+  \caption{Empirical evaluation results across five dimensions. \textbf{(a)}~Security: ABAC gating eliminates cross-tenant leakage (CTLR and AVR drop to 0\%) regardless of orchestration mode. \textbf{(b)}~Retrieval quality: chunk-level gating improves Precision@5 by 2.2$\times$ by filtering cross-tenant noise. \textbf{(c)}~Throughput: gating does not degrade QPS; client-side achieves ${\sim}$2$\times$ server-side at high concurrency. \textbf{(d)}~Predicate pushdown: post-retrieval filtering overhead is small but recall degrades at large corpus sizes; pushdown-capable backends maintain Recall@5=1.0. \textbf{(e)}~Adversarial resilience: all 90 prompt injection probes blocked under gated configurations.}
+  \label{fig:evaluation}
+\end{figure*}
+
+\subsection{Security results}
 
 The headline result: \textbf{gating is the security mechanism}. Without it, nearly all cross-tenant probes return unauthorized data regardless of orchestration mode. ABAC gating eliminates leakage entirely, confirming goal~G1.
 
