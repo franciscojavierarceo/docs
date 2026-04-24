@@ -32,7 +32,7 @@
 
 %\title{Towards Secure, Multitenant, Vendor-Neutral Enterprise RAG on Shared Infrastructure}
 \title{Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
-%\title{Llama Stack: An Open-Source, Vendor-Neutral Architecture for Secure Agentic Systems}
+%\title{OGX: An Open-Source, Vendor-Neutral Architecture for Secure Agentic Systems}
 
 \author{Francisco Javier Arceo}
 \affiliation{%
@@ -55,7 +55,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. This approach centralizes security-critical operations---tool execution authorization, state isolation, and policy enforcement---on the server, creating natural enforcement points for multitenant isolation while allowing client-side frameworks to retain control over agent composition and latency-sensitive operations.
 
-We validate the proposed architecture through an open-source implementation in Llama Stack\footnote{\url{https://github.com/llamastack/llama-stack}}, a vendor-neutral framework that implements an OpenAI-compatible, open-source Responses API with server-side multi-turn orchestration. We evaluate it empirically and show that ABAC gating eliminates cross-tenant leakage while introducing negligible overhead.
+We validate the proposed architecture through an open-source implementation in OGX\footnote{\url{https://github.com/ogx-ai/ogx}}, a vendor-neutral framework that implements an OpenAI-compatible, open-source Responses API with server-side multi-turn orchestration. We evaluate it empirically and show that ABAC gating eliminates cross-tenant leakage while introducing negligible overhead.
 \end{abstract}
 
 \begin{CCSXML}
@@ -75,7 +75,7 @@ We validate the proposed architecture through an open-source implementation in L
 \ccsdesc[300]{Computing methodologies~Machine learning}
 \ccsdesc[100]{Information systems~Data management systems}
 
-\keywords{multitenancy, retrieval-augmented generation, access control, agentic AI, server-side orchestration, Llama Stack, LLM systems, LLMOps}
+\keywords{multitenancy, retrieval-augmented generation, access control, agentic AI, server-side orchestration, OGX, LLM systems, LLMOps}
 
 
 \DeclareMathOperator{\relevance}{relevance}
@@ -140,7 +140,7 @@ This paper makes the following contributions:
 
   \item We validate the architecture through a six-experiment evaluation measuring security (cross-tenant leakage, prompt injection resilience), systems performance (latency overhead, throughput scaling), and retrieval quality across a 2$\times$2 configuration matrix crossing orchestration mode with retrieval gating.
 
-  \item We implement the architecture in Llama Stack~\cite{llamastack}, an open-source, vendor-neutral framework providing OpenAI-compatible APIs with pluggable providers for inference, vector stores, and tools, deployable on Kubernetes via a dedicated operator~\cite{llamastackk8soperator}.
+  \item We implement the architecture in OGX~\cite{llamastack}, an open-source, vendor-neutral framework providing OpenAI-compatible APIs with pluggable providers for inference, vector stores, and tools, deployable on Kubernetes via a dedicated operator~\cite{llamastackk8soperator}.
 \end{enumerate}
 
 %% ============================================================
@@ -341,12 +341,12 @@ Table~\ref{tab:enforcement} maps each security challenge to the enforcement poin
 \section{Implementation}
 \label{sec:implementation}
 
-Llama Stack~\cite{llamastack} provides an open-source implementation of the architecture proposed in Section~\ref{sec:architecture}. The framework exposes OpenAI-compatible APIs for inference and agentic execution, enabling any client-side framework (LangChain~\cite{langchain}, LangGraph~\cite{langgraph}, CrewAI~\cite{crewai}, and others) to gain server-side policy enforcement, multitenancy, and provider portability without changes to agent code. Together with open models such as gpt-oss~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic AI platforms.
+OGX~\cite{llamastack} provides an open-source implementation of the architecture proposed in Section~\ref{sec:architecture}. The framework exposes OpenAI-compatible APIs for inference and agentic execution, enabling any client-side framework (LangChain~\cite{langchain}, LangGraph~\cite{langgraph}, CrewAI~\cite{crewai}, and others) to gain server-side policy enforcement, multitenancy, and provider portability without changes to agent code. Together with open models such as gpt-oss~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic AI platforms.
 
 \subsection{APIs and agentic execution}
 \label{sec:apis}
 
-Llama Stack defines over 20 APIs covering the full lifecycle of agentic applications. These span core capabilities---inference, agents (Responses API), vector stores and search, safety, tool runtime, and telemetry---as well as resource management APIs for models, files, file processors, prompts, conversations, connectors, and tool groups. The framework also provides compatibility layers for third-party API paradigms. Each API is designed with multitenancy as a first-class concern, enabling tenant-scoped resource management and access control. A complete API listing is provided in Appendix~\ref{sec:api-details}.
+OGX defines over 20 APIs covering the full lifecycle of agentic applications. These span core capabilities---inference, agents (Responses API), vector stores and search, safety, tool runtime, and telemetry---as well as resource management APIs for models, files, file processors, prompts, conversations, connectors, and tool groups. The framework also provides compatibility layers for third-party API paradigms. Each API is designed with multitenancy as a first-class concern, enabling tenant-scoped resource management and access control. A complete API listing is provided in Appendix~\ref{sec:api-details}.
 
 The Responses API---implementing the OpenAI Responses API paradigm~\cite{openaiResponsesAPI}---is the central orchestration endpoint (Figure~\ref{fig:openai-responses-api}). Unlike chat completion APIs that terminate after a single inference call, a single Responses API request may trigger multiple inference calls, tool executions, safety checks, and state transitions before producing a final response. All such operations execute within the server boundary: conversation state is retrieved and persisted server-side, tools are invoked under centralized authorization, and safety guardrails are applied at each step.
 
@@ -355,21 +355,21 @@ The Vector Stores and Search APIs provide uniform access to multiple retrieval m
 \subsection{Provider architecture}
 \label{sec:providers}
 
-Extensibility is achieved through pluggable providers. Each API may be backed by multiple providers, categorized as \emph{inline} (executing within the Llama Stack process) or \emph{remote} (adapting external services). This separation enables hybrid deployments: sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients---a developer can prototype with inline providers (e.g., sqlite-vec, an in-process safety model) and move to production-grade remote providers (e.g., pgvector, vLLM~\cite{kwon2023vllm}) without changing application code or security policies.
+Extensibility is achieved through pluggable providers. Each API may be backed by multiple providers, categorized as \emph{inline} (executing within the OGX process) or \emph{remote} (adapting external services). This separation enables hybrid deployments: sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients---a developer can prototype with inline providers (e.g., sqlite-vec, an in-process safety model) and move to production-grade remote providers (e.g., pgvector, vLLM~\cite{kwon2023vllm}) without changing application code or security policies.
 
 A routing layer dispatches API requests to provider instances based on logical resource identifiers, incorporating authorization checks and tenant identity before delegation. Different tenants may be routed to distinct provider instances while sharing the same API surface. A \emph{distribution} packages a specific set of APIs, providers, and resources into a deployable unit, decoupling application logic from provider selection. Supported providers are listed in Appendix~\ref{sec:api-details}.
 
 \subsection{Access control}
 \label{sec:access-control}
 
-Llama Stack includes a declarative, attribute-based access control (ABAC) framework that evaluates authorization at runtime. Access rules specify permit or deny scopes with conditions based on ownership and attribute matching. The default policy permits access when the user is the resource owner or when the user's attributes (roles, teams, projects, namespaces) match the resource's access attributes; a default-deny model ensures access is only granted when explicitly permitted.
+OGX includes a declarative, attribute-based access control (ABAC) framework that evaluates authorization at runtime. Access rules specify permit or deny scopes with conditions based on ownership and attribute matching. The default policy permits access when the user is the resource owner or when the user's attributes (roles, teams, projects, namespaces) match the resource's access attributes; a default-deny model ensures access is only granted when explicitly permitted.
 
 Authorization is enforced at three levels: (1)~API route middleware, (2)~routing table resolution (before resolving a vector store or model to a provider), and (3)~storage read time, where query filters are constructed from the current user's attributes so that tenants only see their own or attribute-matched rows. JWT or Kubernetes authentication providers map external identity claims into these attributes, so enterprise identity systems drive isolation without embedding tenant IDs in application logic.
 
 \subsection{Deployment}
 \label{sec:deployment}
 
-The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deployment through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports shared instances (multiple tenants with ABAC isolation), per-tenant instances (namespace-level isolation with Kubernetes RBAC), and hybrid approaches~\cite{burns2016borg}. In all topologies, the provider abstraction allows organizations to start with lightweight backends during development and migrate to production-grade infrastructure without modifying agent code or security policies.
+The OGX Kubernetes Operator~\cite{llamastackk8soperator} automates deployment through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports shared instances (multiple tenants with ABAC isolation), per-tenant instances (namespace-level isolation with Kubernetes RBAC), and hybrid approaches~\cite{burns2016borg}. In all topologies, the provider abstraction allows organizations to start with lightweight backends during development and migrate to production-grade infrastructure without modifying agent code or security policies.
 
 \begin{figure}[!htbp]
   \centering
@@ -401,7 +401,7 @@ The Llama Stack Kubernetes Operator~\cite{llamastackk8soperator} automates deplo
     \draw[arrow] (k8s) -- (vec);
   \end{tikzpicture}%
   }
-  \caption{Llama Stack architecture for multitenant enterprise agentic AI on shared Kubernetes infrastructure.}
+  \caption{OGX architecture for multitenant enterprise agentic AI on shared Kubernetes infrastructure.}
   \label{fig:architecture}
 \end{figure}
 
@@ -433,7 +433,7 @@ We evaluate the architecture through six experiments measuring security, systems
 
 \textbf{Workload.} Three synthetic tenants (\emph{finance}, \emph{engineering}, \emph{legal}) with 300 documents (100 per tenant, ${\sim}$512 tokens each) and controlled topical overlap. Per configuration: 300 authorized queries (100 per tenant), 300 cross-tenant probes (a finance user querying for engineering documents), and 90 prompt injection probes spanning four attack categories (instruction override, role impersonation, debug exploitation, context manipulation).
 
-\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt-4o-mini} through Llama Stack's \texttt{remote::openai} provider; embeddings via \texttt{text-embedding-3-small}; vector store via \texttt{inline::sqlite-vec}; authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} serving \texttt{Llama-3.2-1B-Instruct} on an NVIDIA T4.
+\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt-4o-mini} through OGX's \texttt{remote::openai} provider; embeddings via \texttt{text-embedding-3-small}; vector store via \texttt{inline::sqlite-vec}; authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} serving \texttt{Llama-3.2-1B-Instruct} on an NVIDIA T4.
 
 \textbf{Metrics.} Cross-Tenant Leakage Rate (CTLR): fraction of cross-tenant probes returning at least one unauthorized chunk. Authorization Violation Rate (AVR): fraction of all API calls returning unauthorized data.
 
@@ -456,9 +456,9 @@ A natural question is why server-side orchestration matters if client-side gatin
 
 \subsection{Performance results}
 
-\textbf{Latency overhead.} Isolating the search component from inference, the gated search path adds ${\sim}$19ms: auth server round-trip (${\sim}$14ms), ABAC policy evaluation ($<$1ms), and per-tenant store lookup (${\sim}$5ms). This is negligible relative to inference time (${\sim}$3--7s for API-based, ${\sim}$450ms for self-hosted GPU). On self-hosted GPU infrastructure (vLLM on T4), the Llama Stack routing and dispatch layer adds 4.7ms (1.0\% of baseline inference), and tenant metadata filtering adds 5.5ms (1.9\% of search time). Full latency tables are in Appendix~\ref{sec:latency-tables}.
+\textbf{Latency overhead.} Isolating the search component from inference, the gated search path adds ${\sim}$19ms: auth server round-trip (${\sim}$14ms), ABAC policy evaluation ($<$1ms), and per-tenant store lookup (${\sim}$5ms). This is negligible relative to inference time (${\sim}$3--7s for API-based, ${\sim}$450ms for self-hosted GPU). On self-hosted GPU infrastructure (vLLM on T4), the OGX routing and dispatch layer adds 4.7ms (1.0\% of baseline inference), and tenant metadata filtering adds 5.5ms (1.9\% of search time). Full latency tables are in Appendix~\ref{sec:latency-tables}.
 
-Server-side orchestration adds ${\sim}$3s total latency vs.\ client-side due to the Responses API tool execution round-trip. All experiments used non-streaming responses (full completion before returning). With streaming---supported by Llama Stack's Responses API---time-to-first-token would be substantially lower.
+Server-side orchestration adds ${\sim}$3s total latency vs.\ client-side due to the Responses API tool execution round-trip. All experiments used non-streaming responses (full completion before returning). With streaming---supported by OGX's Responses API---time-to-first-token would be substantially lower.
 
 \textbf{Throughput.} Throughput scales linearly with concurrency up to $c{=}25$ across all configurations. Gating does not degrade throughput. Client-side orchestration achieves ${\sim}$2$\times$ the QPS of server-side at high concurrency due to the shorter request path (Appendix Table~\ref{tab:throughput}).
 
@@ -486,25 +486,25 @@ This architecture is unnecessary for single-tenant deployments, public data, org
 \begin{itemize}
   \item \textbf{ABAC policy complexity.} Policy complexity grows with the number of tenants, roles, and resource types. Organizations with deeply nested permission structures may face policy management overhead.
 
-  \item \textbf{Predicate pushdown.} As shown in Section~\ref{sec:evaluation}, backends without native predicate pushdown experience recall degradation at scale. Llama Stack enforces post-retrieval filtering across all backends regardless of native pushdown support, so the security guarantee holds; the trade-off is recall, not security.
+  \item \textbf{Predicate pushdown.} As shown in Section~\ref{sec:evaluation}, backends without native predicate pushdown experience recall degradation at scale. OGX enforces post-retrieval filtering across all backends regardless of native pushdown support, so the security guarantee holds; the trade-off is recall, not security.
 
-  \item \textbf{Client-side function tools.} Client-side function tools, by design, execute outside the server trust boundary. Llama Stack mitigates this through explicit tool classification but cannot enforce server-side invariants on client-executed code.
+  \item \textbf{Client-side function tools.} Client-side function tools, by design, execute outside the server trust boundary. OGX mitigates this through explicit tool classification but cannot enforce server-side invariants on client-executed code.
 \end{itemize}
 
 \subsection{Related work}
 
 Several systems aim to standardize LLM-based agentic applications. The closest to our work are API-layer platforms and enterprise agent runtimes.
 
-OpenAI's Responses API~\cite{openaiResponsesAPI}, function-calling conventions~\cite{openaiFunctionCalling}, and the Model Context Protocol (MCP)~\cite{mcp} establish \emph{what} an agent can do but are silent on \emph{who} may do it---they assume a single-tenant caller. Databricks' Mosaic AI Agent Framework~\cite{databricksAgentFramework} wraps agents in an MLflow ResponsesAgent~\cite{mlflow,databricksResponsesAgent} with managed MCP tools and Unity Catalog governance, providing the closest enterprise parallel, but couples the experience to the Databricks stack. Llama Stack adopts the same interface conventions while providing multitenant isolation through an open, vendor-neutral API layer deployable on any infrastructure.
+OpenAI's Responses API~\cite{openaiResponsesAPI}, function-calling conventions~\cite{openaiFunctionCalling}, and the Model Context Protocol (MCP)~\cite{mcp} establish \emph{what} an agent can do but are silent on \emph{who} may do it---they assume a single-tenant caller. Databricks' Mosaic AI Agent Framework~\cite{databricksAgentFramework} wraps agents in an MLflow ResponsesAgent~\cite{mlflow,databricksResponsesAgent} with managed MCP tools and Unity Catalog governance, providing the closest enterprise parallel, but couples the experience to the Databricks stack. OGX adopts the same interface conventions while providing multitenant isolation through an open, vendor-neutral API layer deployable on any infrastructure.
 
-LLM serving engines such as vLLM~\cite{kwon2023vllm} and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation; vector databases such as Milvus~\cite{milvus} and Weaviate~\cite{weaviate} and platforms such as Vectara~\cite{vectara} rank by relevance without authorization enforcement. Llama Stack treats these as pluggable providers beneath its authorization layer. Agent orchestration frameworks---LangGraph~\cite{langgraph}, Microsoft's Agent Framework~\cite{microsoftAgentFramework} (successor to Semantic Kernel~\cite{semanticKernel} and AutoGen~\cite{autogen}), Google ADK~\cite{googleADK}, Haystack~\cite{haystack}, LlamaIndex~\cite{llamaindex}, Smolagents~\cite{smolagents}, and Pydantic AI~\cite{pydanticai}---provide developer-facing abstractions but orchestrate from the client side; Llama Stack serves as the server-side execution target these frameworks call into.
+LLM serving engines such as vLLM~\cite{kwon2023vllm} and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation; vector databases such as Milvus~\cite{milvus} and Weaviate~\cite{weaviate} and platforms such as Vectara~\cite{vectara} rank by relevance without authorization enforcement. OGX treats these as pluggable providers beneath its authorization layer. Agent orchestration frameworks---LangGraph~\cite{langgraph}, Microsoft's Agent Framework~\cite{microsoftAgentFramework} (successor to Semantic Kernel~\cite{semanticKernel} and AutoGen~\cite{autogen}), Google ADK~\cite{googleADK}, Haystack~\cite{haystack}, LlamaIndex~\cite{llamaindex}, Smolagents~\cite{smolagents}, and Pydantic AI~\cite{pydanticai}---provide developer-facing abstractions but orchestrate from the client side; OGX serves as the server-side execution target these frameworks call into.
 
 Production ML research has documented the fragility of distributed invariants~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}, and lifecycle platforms such as MLflow~\cite{mlflow} address deployment but not agentic multitenancy. To our knowledge, no prior work addresses the intersection of standardized agentic API design, server-side orchestration, and multitenant isolation on shared infrastructure. The contribution is the composition of individually known techniques---ABAC, server-side orchestration, pluggable providers---for the specific problem of multitenant agentic AI, validated empirically.
 
 \subsection{Conclusion}
 Enterprise deployment of agentic AI systems introduces security and compliance challenges that existing architectures---designed for single-tenant, consumer-facing use---do not address. This paper formalized the relevance-authorization gap, proposed a layered isolation architecture with server-side enforcement, and evaluated it empirically: ABAC gating eliminates cross-tenant leakage entirely while adding ${\sim}$19ms to the search path, and throughput scales linearly with no gating bottleneck. The defense operates at the retrieval layer, making it resilient to prompt injection attacks regardless of model behavior.
 
-Our implementation through Llama Stack demonstrates that secure multitenancy, vendor-neutral OpenAI-compatible APIs, and autonomous agent capabilities are simultaneously achievable on shared infrastructure without per-tenant duplication.
+Our implementation through OGX demonstrates that secure multitenancy, vendor-neutral OpenAI-compatible APIs, and autonomous agent capabilities are simultaneously achievable on shared infrastructure without per-tenant duplication.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
@@ -545,7 +545,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
   Component & Median & P95 & N \\
   \midrule
   vLLM Direct (baseline) & 447.9ms & 531.5ms & 50 \\
-  Llama Stack (routing + dispatch) & 452.6ms & 537.9ms & 50 \\
+  OGX (routing + dispatch) & 452.6ms & 537.9ms & 50 \\
   \midrule
   Search (ungated) & 283.9ms & 294.3ms & 50 \\
   Search (tenant-gated) & 289.4ms & 306.0ms & 50 \\
@@ -645,7 +645,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 ]
 
 % Title
-\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{Llama Stack Responses Implementation}};
+\node[font=\LARGE\bfseries] (title) at (8,12.5) {\underline{OGX Responses Implementation}};
 
 % OpenAI Client
 \node[box, minimum width=32mm] (client) at (8,11.2) {OpenAI Client};
@@ -752,7 +752,7 @@ Our implementation through Llama Stack demonstrates that secure multitenancy, ve
 \end{center}
 
 Figure~\ref{fig:openai-responses-api} illustrates the complete Responses API surface area and the interconnections between APIs, providers, and tools.
-Llama Stack implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies. The key APIs include:
+OGX implements the Responses API not only as an agentic execution endpoint but as a resource model encompassing vector stores, files, and conversations---each a first-class, tenant-scoped API object subject to the same ABAC policies. The key APIs include:
 
 \begin{itemize}[nosep]
   \item \textbf{Responses API:} Central orchestration endpoint for multi-turn conversations, tool calling, and agentic execution~\cite{openaiResponsesAPI}.
@@ -764,6 +764,6 @@ Llama Stack implements the Responses API not only as an agentic execution endpoi
   \item \textbf{Tools:} Built-in tools (file search, web search, code interpreter, image generation, computer use) and external tools via MCP~\cite{mcp}.
 \end{itemize}
 
-\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, OpenAI, Anthropic, Azure, AWS Bedrock, Databricks, Gemini, Together, NVIDIA, and WatsonX. Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple Llama Stack instances referencing the same providers while maintaining logical isolation through ABAC.
+\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, OpenAI, Anthropic, Azure, AWS Bedrock, Databricks, Gemini, Together, NVIDIA, and WatsonX. Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple OGX instances referencing the same providers while maintaining logical isolation through ABAC.
 
 \end{document}
