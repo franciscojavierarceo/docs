@@ -1,0 +1,119 @@
+\documentclass[sigconf]{acmart}
+
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{xcolor}
+
+\title{Artifact Appendix: Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
+
+\author{Francisco Javier Arceo}
+\affiliation{%
+  \institution{Red Hat AI}
+  \city{Boston}
+  \country{USA}
+}
+\email{farceo@redhat.com}
+
+\author{Varsha Prasad}
+\affiliation{%
+  \institution{Red Hat AI}
+  \city{Boston}
+  \country{USA}
+}
+\email{vnarsing@redhat.com}
+
+\begin{document}
+\maketitle
+
+\section{Artifact Summary}
+
+The evaluation artifact is available at {\color{blue}\url{https://github.com/ogx-ai/ogx}} under the MIT license. It contains:
+\begin{itemize}
+  \item 9 Python scripts and a master orchestration script (\texttt{run\_all.sh})
+  \item 5 OGX server configurations (one per 2$\times$2 matrix cell + GPU)
+  \item 300 synthetic documents across 3 tenants, 600 query workloads, and 90 prompt injection probes
+  \item Pre-computed results for all experiments
+  \item 80 pytest tests with deterministic synthetic embeddings
+  \item Dockerfile for container-based verification
+\end{itemize}
+\noindent Dependencies are pinned via \texttt{uv.lock} for reproducibility.
+
+\section{System Requirements}
+
+\textbf{Hardware.} Experiments 1--6 can be verified on any machine using pre-computed results and local-only tests (no internet required). Full re-execution of Experiments 1--3 requires internet (OpenAI API). Experiment 5 re-execution requires an NVIDIA GPU with ${\geq}$4GB VRAM running vLLM.
+
+\textbf{Software.} Python 3.12+, \texttt{uv} ${\geq}$0.7.0, and the dependencies listed in \texttt{pyproject.toml} (OGX 0.7.1, OpenAI SDK 2.32.0, FastAPI, pytest, sqlite-vec, NumPy, Matplotlib). Tested on macOS 15 (Apple Silicon) and RHEL 9 (x86\_64). Docker ${\geq}$24.0 is supported as an alternative. All dependencies are installed via \texttt{uv sync --frozen}.
+
+\textbf{API keys.} No API keys are required for verification (Tier 1). An \texttt{OPENAI\_API\_KEY} is only needed to re-execute Experiments 1--3 from scratch (Tier 2).
+
+\section{Major Claims}
+
+Table~\ref{tab:claims} maps the paper's key claims to experiments and verification commands. All commands are run from the repository root.
+
+\begin{table*}[t]
+  \centering
+  \small
+  \begin{tabular}{lp{5.5cm}ll}
+  \toprule
+  \# & Claim (Section) & Exp. & Verification \\
+  \midrule
+  C1 & ABAC gating eliminates cross-tenant leakage: CTLR=0\%, AVR=0\% (\S5.2) & 1 & \texttt{./run\_all.sh --analysis-only} \\
+  C2 & Server-side orchestration alone does not prevent leakage: CTLR=98.3\% (\S5.2) & 1 & Same as C1 \\
+  C3 & Prompt injection probes achieve 0\% leakage under gating (\S5.2) & 3 & Same as C1 \\
+  C4 & Gated search path adds ${\sim}$19ms overhead (\S5.3) & 1--3 & Same as C1 \\
+  C5 & Throughput scales linearly; gating adds no bottleneck (\S5.3) & 2 & Same as C1 \\
+  C6 & OGX routing adds 4.7ms (1.0\%) on GPU infrastructure (\S5.3) & 5 & \texttt{cat data/results/e2e\_latency\_gpu.csv} \\
+  C7 & Gating improves Precision@5 by 2.2$\times$ (\S5.4) & 4 & \texttt{uv run pytest tests/multitenant/ -v} \\
+  C8 & 48-case ABAC matrix: 100\% accuracy, 0\% false positives (\S5.4) & 4 & Same as C7 \\
+  C9 & Recall degrades at ${>}$1K chunks without predicate pushdown (\S5.4) & 6 & \texttt{uv run python scripts/bench\_predicate\_pushdown.py} \\
+  \bottomrule
+  \end{tabular}
+  \caption{Paper claims mapped to experiments and verification commands.}
+  \label{tab:claims}
+\end{table*}
+
+\section{Reproduction Instructions}
+
+The artifact supports three verification tiers:
+
+\textbf{Tier 1: Analysis-only.} No API key required; completes in under 5 minutes. Regenerates figures and summary tables from pre-computed results (Experiments 1--3), runs 80 pytest tests (Experiment 4), and runs the predicate pushdown benchmark (Experiment 6). Validates all claims: C1--C5 from pre-computed data, C7--C9 live.
+\begin{verbatim}
+  git clone <repo-url> && cd ogx
+  uv sync --frozen
+  ./run_all.sh --analysis-only
+\end{verbatim}
+Docker alternative:
+\begin{verbatim}
+  docker build -t ogx .
+  docker run --rm -v $(pwd)/figures:/eval/figures \
+    ogx
+\end{verbatim}
+
+\textbf{Tier 2: Full re-execution.} Requires an OpenAI API key; takes ${\sim}$2 hours and costs ${\sim}$\$5--10. Re-runs all four configurations (A--D) end-to-end, independently reproducing Experiments 1--3 with fresh data. Security metrics (CTLR, AVR) should match exactly, but latency, throughput, and LLM-generated content will vary due to the stochastic nature of inference and external API response times. The script manages OGX server and auth server lifecycle automatically.
+\begin{verbatim}
+  export OPENAI_API_KEY=sk-...
+  ./run_all.sh
+\end{verbatim}
+
+\textbf{Tier 3: GPU experiment.} Requires an NVIDIA GPU with ${\geq}$4GB VRAM. Reproduces Experiment 5 using vLLM serving Llama-3.2-1B-Instruct and an OGX instance. Absolute latencies will vary with GPU model and inference sampling; the overhead percentages (routing ${\sim}$1\%, filtering ${\sim}$2\%) should be in a similar range but may differ depending on hardware and system load. See \texttt{REPRODUCING.md} for details.
+
+\section{Comparing Results}
+
+\textbf{Hardware-independent (deterministic).} Security metrics (CTLR, AVR), ABAC correctness (48-case matrix), adversarial scenario outcomes, retrieval quality (Recall@5, Precision@5, MRR), and predicate pushdown recall values should match the paper exactly---these are determined by policy logic and embedding geometry, not hardware.
+
+\textbf{Hardware-dependent.} Latency numbers (Experiments 1--3) are dominated by OpenAI API response time, which can vary significantly over time. For example, a reproduction on a different date measured Config D at p50=1,327ms vs.\ the original 6,431ms---a ${\sim}$5$\times$ difference attributable to OpenAI infrastructure changes, not our code. When reproducing, focus on the relative overhead delta (gated vs.\ ungated) rather than absolute latency values. Throughput QPS varies with network and CPU, but the relative pattern (gated ${\approx}$ ungated, client ${\sim}$2$\times$ server) should hold. GPU overhead percentages (routing ${\sim}$1\%, filtering ${\sim}$2\%) are fixed costs but will vary with GPU model and system load.
+
+\textbf{Pytest tests}: All 80 tests should pass. These use synthetic embeddings with controlled similarity and are fully deterministic.
+
+\section{Notes for Evaluators}
+
+We recommend starting with Tier 1, which requires no API keys, completes in under 5 minutes, and validates all nine claims deterministically. Pre-computed results for Experiments 1--3 are checked into the repository, so evaluators can verify the analysis pipeline and confirm the paper's reported numbers without any external dependencies. Experiments 4 and 6 run live with deterministic synthetic embeddings.
+
+Re-executing Experiments 1--3 from scratch (Tier 2) requires an OpenAI API key and incurs ${\sim}$\$5--10 in API costs. Note that OpenAI's inference is fundamentally probabilistic: LLM-generated responses will differ between runs, and latency depends on API load and network conditions. Security metrics (CTLR, AVR) are deterministic and should match exactly, but other values will fall within a margin of error of what we report. The \texttt{run\_all.sh} script handles all server lifecycle management.
+
+Experiment 5 (GPU infrastructure overhead) requires dedicated GPU hardware. Pre-computed results are provided in \texttt{data/results/e2e\_latency\_gpu.csv} and can be verified for internal consistency without re-running. Since generative sampling is involved, we expect small differences in absolute latencies between runs; the overhead percentages should remain in a similar range.
+
+The \texttt{REPRODUCING.md} file in the repository provides a complete mapping from every paper claim to the exact command needed to verify it.
+
+\end{document}
