@@ -4,6 +4,9 @@
 \usepackage{booktabs}
 \usepackage{url}
 \usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{amssymb}
+\renewcommand{\labelitemi}{\textbullet}
 
 \title{Artifact Appendix: Securing the Agent: Vendor-Neutral, Multitenant Enterprise Retrieval and Tool Use}
 
@@ -28,10 +31,10 @@
 
 \section{Artifact Summary}
 
-The evaluation artifact is available at {\color{blue}\url{https://github.com/ogx-ai/ogx}} under the MIT license. It contains:
+The evaluation artifact is available at {\color{blue}\url{https://github.com/varshaprasad96/ogx-evals}} under the MIT license, archived on Zenodo at {\color{blue}\url{https://doi.org/10.5281/zenodo.19743797}}. It contains:
 \begin{itemize}
   \item 9 Python scripts and a master orchestration script (\texttt{run\_all.sh})
-  \item 5 OGX server configurations (one per 2$\times$2 matrix cell + GPU)
+  \item 5 OGX server configurations (one per 2x2 matrix cell + GPU)
   \item 300 synthetic documents across 3 tenants, 600 query workloads, and 90 prompt injection probes
   \item Pre-computed results for all experiments
   \item 80 pytest tests with deterministic synthetic embeddings
