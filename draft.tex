@@ -55,7 +55,7 @@ Retrieval-Augmented Generation (RAG) and agentic AI systems are increasingly pre
 
 A fundamental problem underlies existing RAG architectures in these settings: retrieval systems rank documents by relevance---whether through semantic similarity, keyword matching, or hybrid approaches---not by authorization, so a query from one tenant can surface another tenant's confidential data simply because it scores highest. We formalize this gap and analyze additional shortcomings---including tool-mediated disclosure, context accumulation across turns, and client-side orchestration bypass---that arise when agentic systems conflate relevance with authorization. To address these challenges, we introduce a layered isolation architecture combining policy-aware ingestion, retrieval-time gating, and shared inference, enforced through server-side agentic orchestration. This approach centralizes security-critical operations---tool execution authorization, state isolation, and policy enforcement---on the server, creating natural enforcement points for multitenant isolation while allowing client-side frameworks to retain control over agent composition and latency-sensitive operations.
 
-We validate the proposed architecture through an open-source implementation in OGX\footnote{\url{https://github.com/ogx-ai/ogx}}, a vendor-neutral framework that implements an OpenAI-compatible, open-source Responses API with server-side multi-turn orchestration. We evaluate it empirically and show that ABAC gating eliminates cross-tenant leakage while introducing negligible overhead.
+We validate the proposed architecture through an open-source implementation in OGX\footnote{OGX (Open GenAI Stack) was formerly known as Llama Stack~\cite{llamastack}. The project is available at \url{https://github.com/ogx-ai/ogx}; the Kubernetes Operator at \url{https://github.com/ogx-ai/ogx-k8s-operator}.}~\cite{ogx}, a vendor-neutral framework that implements an OpenAI-compatible, open-source Responses API with server-side multi-turn orchestration. We evaluate it empirically and show that ABAC gating eliminates cross-tenant leakage while introducing negligible overhead.
 \end{abstract}
 
 \begin{CCSXML}
@@ -140,7 +140,7 @@ This paper makes the following contributions:
 
   \item We validate the architecture through a six-experiment evaluation measuring security (cross-tenant leakage, prompt injection resilience), systems performance (latency overhead, throughput scaling), and retrieval quality across a 2$\times$2 configuration matrix crossing orchestration mode with retrieval gating.
 
-  \item We implement the architecture in OGX~\cite{llamastack}, an open-source, vendor-neutral framework providing OpenAI-compatible APIs with pluggable providers for inference, vector stores, and tools, deployable on Kubernetes via a dedicated operator~\cite{llamastackk8soperator}.
+  \item We implement the architecture in OGX~\cite{ogx}, an open-source, vendor-neutral framework providing OpenAI-compatible APIs with pluggable providers for inference, vector stores, and tools, deployable on Kubernetes via a dedicated operator~\cite{ogxk8soperator}.
 \end{enumerate}
 
 %% ============================================================
@@ -341,7 +341,7 @@ Table~\ref{tab:enforcement} maps each security challenge to the enforcement poin
 \section{Implementation}
 \label{sec:implementation}
 
-OGX~\cite{llamastack} provides an open-source implementation of the architecture proposed in Section~\ref{sec:architecture}. The framework exposes OpenAI-compatible APIs for inference and agentic execution, enabling any client-side framework (LangChain~\cite{langchain}, LangGraph~\cite{langgraph}, CrewAI~\cite{crewai}, and others) to gain server-side policy enforcement, multitenancy, and provider portability without changes to agent code. Together with open models such as gpt-oss~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic AI platforms.
+OGX~\cite{ogx} provides an open-source implementation of the architecture proposed in Section~\ref{sec:architecture}. The framework exposes OpenAI-compatible APIs for inference and agentic execution, enabling any client-side framework (LangChain~\cite{langchain}, LangGraph~\cite{langgraph}, CrewAI~\cite{crewai}, and others) to gain server-side policy enforcement, multitenancy, and provider portability without changes to agent code. Together with open models such as gpt-oss~\cite{openai2025gptoss120bgptoss20bmodel}, this provides a complete open-source alternative to proprietary agentic AI platforms.
 
 \subsection{APIs and agentic execution}
 \label{sec:apis}
@@ -355,7 +355,7 @@ The Vector Stores and Search APIs provide uniform access to multiple retrieval m
 \subsection{Provider architecture}
 \label{sec:providers}
 
-Extensibility is achieved through pluggable providers. Each API may be backed by multiple providers, categorized as \emph{inline} (executing within the OGX process) or \emph{remote} (adapting external services). This separation enables hybrid deployments: sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients---a developer can prototype with inline providers (e.g., sqlite-vec, an in-process safety model) and move to production-grade remote providers (e.g., pgvector, vLLM~\cite{kwon2023vllm}) without changing application code or security policies.
+Extensibility is achieved through pluggable providers. Each API may be backed by multiple providers, categorized as \emph{inline} (executing within the OGX process) or \emph{remote} (adapting external services). This separation enables hybrid deployments: sensitive data paths remain local while computationally intensive operations are delegated to scalable external services. Crucially, provider substitution is transparent to clients---a developer can prototype with inline providers (e.g., sqlite-vec~\cite{sqlitevec}, an in-process safety model) and move to production-grade remote providers (e.g., pgvector, vLLM~\cite{kwon2023vllm}) without changing application code or security policies.
 
 A routing layer dispatches API requests to provider instances based on logical resource identifiers, incorporating authorization checks and tenant identity before delegation. Different tenants may be routed to distinct provider instances while sharing the same API surface. A \emph{distribution} packages a specific set of APIs, providers, and resources into a deployable unit, decoupling application logic from provider selection. Supported providers are listed in Appendix~\ref{sec:api-details}.
 
@@ -369,7 +369,7 @@ Authorization is enforced at three levels: (1)~API route middleware, (2)~routing
 \subsection{Deployment}
 \label{sec:deployment}
 
-The OGX Kubernetes Operator~\cite{llamastackk8soperator} automates deployment through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports shared instances (multiple tenants with ABAC isolation), per-tenant instances (namespace-level isolation with Kubernetes RBAC), and hybrid approaches~\cite{burns2016borg}. In all topologies, the provider abstraction allows organizations to start with lightweight backends during development and migrate to production-grade infrastructure without modifying agent code or security policies.
+The OGX Kubernetes Operator~\cite{ogxk8soperator} automates deployment through custom resources that declaratively specify server configurations, backend connections, and isolation policies. The operator supports shared instances (multiple tenants with ABAC isolation), per-tenant instances (namespace-level isolation with Kubernetes RBAC), and hybrid approaches~\cite{burns2016borg}. In all topologies, the provider abstraction allows organizations to start with lightweight backends during development and migrate to production-grade infrastructure without modifying agent code or security policies.
 
 \begin{figure}[!htbp]
   \centering
@@ -765,6 +765,6 @@ OGX implements the Responses API not only as an agentic execution endpoint but a
   \item \textbf{Tools:} Built-in tools (file search, web search, code interpreter, image generation, computer use) and external tools via MCP~\cite{mcp}.
 \end{itemize}
 
-\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, OpenAI, Anthropic, Azure, AWS Bedrock, Databricks, Gemini, Together, NVIDIA, and WatsonX. Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{llamastackk8soperator} enables deployment of heterogeneous backends as shared services, with multiple OGX instances referencing the same providers while maintaining logical isolation through ABAC.
+\noindent Supported inference providers include vLLM~\cite{kwon2023vllm}, Ollama, OpenAI, Anthropic, Azure, AWS Bedrock, Databricks, Gemini, Together, NVIDIA, and WatsonX. Vector store providers include Chroma, pgvector, Elasticsearch, Qdrant, Weaviate, Milvus, Oracle Cloud Infrastructure, FAISS~\cite{johnson2017faiss}, and sqlite-vec. The Kubernetes Operator~\cite{ogxk8soperator} enables deployment of heterogeneous backends as shared services, with multiple OGX instances referencing the same providers while maintaining logical isolation through ABAC.
 
 \end{document}
