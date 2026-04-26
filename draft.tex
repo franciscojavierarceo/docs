@@ -433,7 +433,7 @@ We evaluate the architecture through six experiments measuring security, systems
 
 \textbf{Workload.} Three synthetic tenants (\emph{finance}, \emph{engineering}, \emph{legal}) with 300 documents (100 per tenant, ${\sim}$512 tokens each) and controlled topical overlap. Per configuration: 300 authorized queries (100 per tenant), 300 cross-tenant probes (a finance user querying for engineering documents), and 90 prompt injection probes spanning four attack categories (instruction override, role impersonation, debug exploitation, context manipulation).
 
-\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt-4o-mini} through OGX's \texttt{remote::openai} provider; embeddings via \texttt{text-embedding-3-small}; vector store via \texttt{inline::sqlite-vec}; authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} serving \texttt{Llama-3.2-1B-Instruct} on an NVIDIA T4.
+\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt\text{-}4o\text{-}mini} through OGX's \texttt{remote::openai} provider; embeddings via OpenAI \texttt{text\text{-}embedding\text{-}3\text{-}small}; vector store via \texttt{inline::sqlite\text{-}vec}; authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} serving \texttt{Llama\text{-}3.2\text{-}1B\text{-}Instruct} on an NVIDIA T4.
 
 \textbf{Metrics.} Cross-Tenant Leakage Rate (CTLR): fraction of cross-tenant probes returning at least one unauthorized chunk. Authorization Violation Rate (AVR): fraction of all API calls returning unauthorized data.
 
