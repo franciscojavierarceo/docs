@@ -75,12 +75,19 @@ We validate the proposed architecture through an open-source implementation in O
 \ccsdesc[300]{Computing methodologies~Machine learning}
 \ccsdesc[100]{Information systems~Data management systems}
 
-\keywords{multitenancy, retrieval-augmented generation, access control, agentic AI, server-side orchestration, OGX, LLM systems, LLMOps}
+\keywords{multitenancy, retrieval-augmented generation, RAG, access control, agentic AI, server-side orchestration, open source, OGX, LLM systems, LLMOps}
 
 
 \DeclareMathOperator{\relevance}{relevance}
 
 \begin{document}
+
+\acmYear{2026}\copyrightyear{2026}
+\acmConference[ACM CAIS '26]{ACM Conference on AI and Agentic Systems}{May 26--29, 2026}{San Jose, CA, USA}
+\acmBooktitle{ACM Conference on AI and Agentic Systems (ACM CAIS '26), May 26--29, 2026, San Jose, CA, USA}
+\acmDOI{10.1145/3786335.3813145}
+\acmISBN{979-8-4007-2415-2/26/05}
+
 \maketitle
 
 %% ============================================================
@@ -152,7 +159,7 @@ We trace the evolution of LLM application architectures to show how each phase i
 
 \subsection{The evolution of LLM application architectures}
 LLM application architectures have evolved through distinct phases, each introducing new capabilities and security considerations.
-\textbf{Completion APIs} exposed simple prompt\,$\rightarrow$\,text interfaces with perimeter-oriented security.
+The \textbf{Completions APIs} exposed simple prompt\,$\rightarrow$\,text interfaces with perimeter-oriented security.
 
 \textbf{Retrieval-augmented generation (RAG)}~\cite{lewis2020rag} introduced retrieval and new attack surfaces such as retrieval manipulation and context poisoning, building on foundational work on prompt injection vulnerabilities~\cite{willison2022prompt}.
 \textbf{Dense retrieval and learned retrievers} (e.g., DPR~\cite{karpukhin2020dpr} and retrieval-augmented pretraining such as REALM~\cite{guu2020realm}) established the core technical basis for modern RAG.
@@ -414,7 +421,7 @@ The OGX Kubernetes Operator~\cite{ogxk8soperator} automates deployment through c
 
 We evaluate the architecture through six experiments measuring security, systems performance, and retrieval quality. Figure~\ref{fig:evaluation} summarizes the key results. The evaluation uses a 2$\times$2 configuration matrix crossing orchestration mode (client-side vs.\ server-side) against retrieval gating (ungated vs.\ ABAC-gated):
 
-\begin{table}[!htbp]
+\begin{table}[h]
   \centering
   \small
   \begin{tabular}{l|cc}
@@ -428,12 +435,12 @@ We evaluate the architecture through six experiments measuring security, systems
   \caption{2$\times$2 configuration matrix.}
   \label{tab:config-matrix}
 \end{table}
-
+\noindent
 \subsection{Setup}
 
 \textbf{Workload.} Three synthetic tenants (\emph{finance}, \emph{engineering}, \emph{legal}) with 300 documents (100 per tenant, ${\sim}$512 tokens each) and controlled topical overlap. Per configuration: 300 authorized queries (100 per tenant), 300 cross-tenant probes (a finance user querying for engineering documents), and 90 prompt injection probes spanning four attack categories (instruction override, role impersonation, debug exploitation, context manipulation).
 
-\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt\text{-}4o\text{-}mini} through OGX's \texttt{remote::openai} provider; embeddings via OpenAI \texttt{text\text{-}embedding\text{-}3\text{-}small}; vector store via \texttt{inline::sqlite\text{-}vec}; authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} serving \texttt{Llama\text{-}3.2\text{-}1B\text{-}Instruct} on an NVIDIA T4.
+\textbf{Infrastructure.} Inference via OpenAI \texttt{gpt\text{-}4o\text{-}mini} through OGX's \texttt{remote::openai} provider; embeddings via OpenAI \texttt{text\text{-}embedding\text{-}3\text{-}small}; vector storage via sqlite-vec~\cite{sqlitevec} (\texttt{inline} provider); and authentication via a lightweight mock mapping bearer tokens to tenant identities. GPU infrastructure experiments use vLLM~\cite{kwon2023vllm} on an NVIDIA T4 serving Llama-3.2-1B-Instruct.
 
 \textbf{Metrics.} Cross-Tenant Leakage Rate (CTLR): fraction of cross-tenant probes returning at least one unauthorized chunk. Authorization Violation Rate (AVR): fraction of all API calls returning unauthorized data.
 
@@ -461,6 +468,8 @@ A natural question is why server-side orchestration matters if client-side gatin
 Server-side orchestration adds ${\sim}$3s total latency vs.\ client-side due to the Responses API tool execution round-trip. All experiments used non-streaming responses (full completion before returning). With streaming---supported by OGX's Responses API---time-to-first-token would be substantially lower.
 
 \textbf{Throughput.} Throughput scales linearly with concurrency up to $c{=}25$ across all configurations. Gating does not degrade throughput. Client-side orchestration achieves ${\sim}$2$\times$ the QPS of server-side at high concurrency due to the shorter request path (Appendix Table~\ref{tab:throughput}).
+
+Absolute latency and throughput numbers are hardware- and API-dependent; we expect the relative ratios (gated vs.\ ungated overhead, client vs.\ server throughput) to hold across environments.
 
 \subsection{Retrieval quality and scaling}
 
@@ -497,7 +506,7 @@ Several systems aim to standardize LLM-based agentic applications. The closest t
 
 OpenAI's Responses API~\cite{openaiResponsesAPI}, function-calling conventions~\cite{openaiFunctionCalling}, and the Model Context Protocol (MCP)~\cite{mcp} establish \emph{what} an agent can do but are silent on \emph{who} may do it---they assume a single-tenant caller. Databricks' Mosaic AI Agent Framework~\cite{databricksAgentFramework} wraps agents in an MLflow ResponsesAgent~\cite{mlflow,databricksResponsesAgent} with managed MCP tools and Unity Catalog governance, providing the closest enterprise parallel, but couples the experience to the Databricks stack. OGX adopts the same interface conventions while providing multitenant isolation through an open, vendor-neutral API layer deployable on any infrastructure.
 
-LLM serving engines such as vLLM~\cite{kwon2023vllm} and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation; vector databases such as Milvus~\cite{milvus} and Weaviate~\cite{weaviate} and platforms such as Vectara~\cite{vectara} rank by relevance without authorization enforcement. OGX treats these as pluggable providers beneath its authorization layer. Agent orchestration frameworks---LangGraph~\cite{langgraph}, Microsoft's Agent Framework~\cite{microsoftAgentFramework} (successor to Semantic Kernel~\cite{semanticKernel} and AutoGen~\cite{autogen}), Google ADK~\cite{googleADK}, Haystack~\cite{haystack}, LlamaIndex~\cite{llamaindex}, Smolagents~\cite{smolagents}, and Pydantic AI~\cite{pydanticai}---provide developer-facing abstractions but orchestrate from the client side; OGX serves as the server-side execution target these frameworks call into.
+LLM serving engines such as vLLM~\cite{kwon2023vllm}, SGLang~\cite{sglang}, and Orca~\cite{yu2022orca} optimize inference throughput but are agnostic to tenant isolation; vector databases such as Milvus~\cite{milvus} and Weaviate~\cite{weaviate} and platforms such as Vectara~\cite{vectara} rank by relevance without authorization enforcement. OGX treats these as pluggable providers beneath its authorization layer. Agent orchestration frameworks---LangGraph~\cite{langgraph}, Microsoft's Agent Framework~\cite{microsoftAgentFramework} (successor to Semantic Kernel~\cite{semanticKernel} and AutoGen~\cite{autogen}), Google ADK~\cite{googleADK}, Haystack~\cite{haystack}, LlamaIndex~\cite{llamaindex}, Smolagents~\cite{smolagents}, and Pydantic AI~\cite{pydanticai}---provide developer-facing abstractions but orchestrate from the client side; OGX serves as the server-side execution target these frameworks call into.
 
 Production ML research has documented the fragility of distributed invariants~\cite{sculley2015hiddentechnicaldebt,amershi2019se4ml}, and lifecycle platforms such as MLflow~\cite{mlflow} address deployment but not agentic multitenancy. To our knowledge, no prior work addresses the intersection of standardized agentic API design, server-side orchestration, and multitenant isolation on shared infrastructure. The contribution is the composition of individually known techniques---ABAC, server-side orchestration, pluggable providers---for the specific problem of multitenant agentic AI, validated empirically.
 
@@ -505,6 +514,10 @@ Production ML research has documented the fragility of distributed invariants~\c
 Enterprise deployment of agentic AI systems introduces security and compliance challenges that existing architectures---designed for single-tenant, consumer-facing use---do not address. This paper formalized the relevance-authorization gap, proposed a layered isolation architecture with server-side enforcement, and evaluated it empirically: ABAC gating eliminates cross-tenant leakage entirely while adding ${\sim}$19ms to the search path, and throughput scales linearly with no gating bottleneck. The defense operates at the retrieval layer, making it resilient to prompt injection attacks regardless of model behavior.
 
 Our implementation through OGX demonstrates that secure multitenancy, vendor-neutral OpenAI-compatible APIs, and autonomous agent capabilities are simultaneously achievable on shared infrastructure without per-tenant duplication.
+
+\begin{acks}
+We thank the reviewers for their constructive feedback, which strengthened the evaluation and presentation of this work. We are grateful to Meta for creating and open-sourcing Llama Stack, and to the contributors and maintainers of the Llama Stack / OGX community for their continued contributions to the project.
+\end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
